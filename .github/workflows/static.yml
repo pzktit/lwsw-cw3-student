@@ -33,9 +33,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload only html and png files from the doc folder
-          path: |
-            doc/*.html
-            doc/*.png
+          path: doc/*.{html,png}
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
