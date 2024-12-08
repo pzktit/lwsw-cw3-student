@@ -2,10 +2,6 @@
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ["main"]
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -36,8 +32,10 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: 'doc'
+          # Upload only html and png files from the doc folder
+          path: |
+            doc/**/*.html
+            doc/**/*.png
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
