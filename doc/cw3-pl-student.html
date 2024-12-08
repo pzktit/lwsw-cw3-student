@@ -1,136 +1,355 @@
 <h1 id="linux-w-systemach-wbudowanych"><strong>Linux w Systemach
 Wbudowanych</strong></h1>
 <h1
-id="konfiguracja-linii-gpio-jako-wyjść-w-systemach-raspberry-pi-i-linux"><strong>2.
-Konfiguracja linii GPIO jako wyjść w systemach Raspberry Pi i
+id="wykorzystanie-linii-gpio-jako-wejść-w-systemach-raspberry-pi-i-linux"><strong>3.
+Wykorzystanie linii GPIO jako wejść w systemach Raspberry Pi i
 Linux</strong></h1>
 <p><strong>Piotr ZAWADZKI</strong></p>
-<h2 id="zadania-do-wykonania">2.5 Zadania do wykonania</h2>
-<p>Elementy interfejsu aplikacji</p>
-<ul>
-<li><strong>GPIO 6</strong>: Zarządzane przez nakładkę
-<code>gpio-led</code> (kontrola diody LED za pomocą sysfs).</li>
-<li><strong>GPIO 17</strong>: Podświetlenie ekranu zarządzane
-bezpośrednio przy użyciu <code>libgpiod</code> (narzędzia
-<code>gpiod</code>).</li>
-<li><strong>GPIO 4</strong>: Przycisk chwilowy normalnie otwarty — służy
-do zmiany stanu aplikacji. Obsługa przycisków wejściowych jest jednym z
-elementów następnego cwiczenia.</li>
-</ul>
-<div style="text-align: center;">
+<h2 id="omówienie-aplikacji">Omówienie aplikacji</h2>
+<p>Schemat wszystkich połączeń elementów układu przedstawiono
+poniżej.</p>
 <figure>
-<img src="cw2-export.png" alt="Schemat układu" />
-<figcaption aria-hidden="true">Schemat układu</figcaption>
+<img src="schemat_ex3.png" alt="schemat układu" />
+<figcaption aria-hidden="true">schemat układu</figcaption>
 </figure>
-</div>
-<h3 id="zadanie-1-sprawdź-stany-pinów-za-pomocą-pinctrl"><strong>Zadanie
-1: Sprawdź stany pinów za pomocą <code>pinctrl</code></strong></h3>
-<p><strong>Cel</strong>: Użyj narzędzia <code>pinctrl</code>, aby
-sprawdzić aktualny stan pinów oraz dostępne alternatywne funkcje dla
-GPIO 6 i GPIO 17.</p>
+<p>Funkcjonalnie aplikacja nie jest skomplikowana:</p>
 <ul>
-<li><p>Zidentyfikuj kontroler pinów</p>
+<li>dalmierz SR-04 w sposób ciągły mierzy odległość od przeszkody,</li>
+<li>gdy przeszkoda jest zbyt blisko, rozpoczynana jest procedura
+alarmu,</li>
+<li>wartość progu detekcji ustawia się za pomocą pokrętła enkodera
+obrotowego,</li>
+<li>działający alarm można dezaktywować, naciskając przycisk enkodera
+obrotowego,</li>
+<li>zmierzona odległość od przeszkody i ustawiony próg aktywacji alarmu
+są wyświetlane na ekranie,</li>
+<li>wartość odległości, która spowodowała wyzwolenie alarmu, jest
+wyświetlana na czerwono,</li>
+<li>w celach testowych można wyzwolić alarm, naciskając krótko przycisk
+chwilowy,</li>
+<li>długie naciśnięcie przycisku chwilowego kończy działanie
+aplikacji,</li>
+<li>działanie aplikacji można zakończyć kombinacją <em>Ctrl+C</em>.
+<strong>Uwaga! <em>Ctrl+C</em> nie działa w terminalu Visual Studio
+Code</strong>.</li>
+</ul>
+<p>Każdy z elementów zarządzany jest przez osobny wątek.</p>
 <div class="sourceCode" id="cb1"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> /sys/kernel/debug/pinctrl/</span></code></pre></div>
-<p>Następnie użyj <code>rpi</code>.</p></li>
-<li><p>Sprawdź stan pinów dla GPIO 6</p></li>
-<li><p>Wylistuj dostępne funkcje dla GPIO 6</p></li>
-<li><p>Powtórz dla GPIO 17</p></li>
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>thread lwsw_button_task<span class="op">(</span> button_thread<span class="op">,</span> <span class="bu">std::</span>ref<span class="op">(</span>appState<span class="op">),</span> <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;({</span> <span class="st">&quot;/dev/input/event0&quot;</span> <span class="op">})</span> <span class="op">)</span> <span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>thread detection_task<span class="op">(</span> detection_thread<span class="op">,</span> <span class="bu">std::</span>ref<span class="op">(</span>appState<span class="op">),</span> hardwareConfig<span class="op">.</span>SR04_Trigger<span class="op">,</span> hardwareConfig<span class="op">.</span>SR04_Echo<span class="op">)</span> <span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>thread rotary_task<span class="op">(</span> rotary_encoder_thread<span class="op">,</span> <span class="bu">std::</span>ref<span class="op">(</span>appState<span class="op">),</span> hardwareConfig<span class="op">.</span>rotary_SIA<span class="op">,</span> hardwareConfig<span class="op">.</span>rotary_SIB<span class="op">)</span> <span class="op">;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>thread display_task<span class="op">(</span> display_thread<span class="op">,</span> <span class="bu">std::</span>ref<span class="op">(</span>appState<span class="op">),</span> hardwareConfig<span class="op">.</span>displayConfig<span class="op">)</span> <span class="op">;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>thread rotary_button_task<span class="op">(</span> rotary_button_thread<span class="op">,</span> <span class="bu">std::</span>ref<span class="op">(</span>appState<span class="op">),</span> hardwareConfig<span class="op">.</span>rotary_SW<span class="op">)</span> <span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>thread alarm_led_task<span class="op">(</span> gpio_led_thread<span class="op">,</span> <span class="bu">std::</span>ref<span class="op">(</span>appState<span class="op">),</span> hardwareConfig<span class="op">.</span>LED <span class="op">)</span> <span class="op">;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>thread displayBacklight_task<span class="op">(</span> backlight_led_thread<span class="op">,</span> <span class="bu">std::</span>ref<span class="op">(</span>appState<span class="op">),</span> hardwareConfig<span class="op">.</span>displayBacklightConf<span class="op">)</span> <span class="op">;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="op">(</span>appState<span class="op">.</span>keepRunning<span class="op">.</span>load<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>this_thread::sleep_for<span class="op">(</span><span class="bu">std::</span>chrono::milliseconds<span class="op">(</span><span class="dv">100</span><span class="op">));</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> now <span class="op">=</span> <span class="bu">std::</span>chrono::steady_clock::now<span class="op">();</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>appState<span class="op">.</span>setAlarm<span class="op">.</span>load<span class="op">()</span> <span class="op">&amp;&amp;</span> now <span class="op">&gt;</span> appState<span class="op">.</span>alarmTime<span class="op">.</span>load<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;ALARM expired&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        appState<span class="op">.</span>setAlarm<span class="op">.</span>store<span class="op">(</span><span class="kw">false</span><span class="op">);</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        appState<span class="op">.</span>alarmTime<span class="op">.</span>store<span class="op">(</span><span class="bu">std::</span>chrono::steady_clock::time_point::min<span class="op">());</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Main thread: waiting for child threads stop.&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>displayBacklight_task<span class="op">.</span>join<span class="op">();</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>alarm_led_task<span class="op">.</span>join<span class="op">();</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>rotary_button_task<span class="op">.</span>join<span class="op">();</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>display_task<span class="op">.</span>join<span class="op">();</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>rotary_task<span class="op">.</span>join<span class="op">();</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>detection_task<span class="op">.</span>join<span class="op">();</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>lwsw_button_task<span class="op">.</span>join<span class="op">()</span> <span class="op">;</span></span></code></pre></div>
+<p>Wątki komunikują się ze sobą poprzez globalną zmienną</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Application_state <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>atomic<span class="op">&lt;</span><span class="dt">bool</span><span class="op">&gt;</span> keepRunning<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>atomic<span class="op">&lt;</span><span class="dt">bool</span><span class="op">&gt;</span> setAlarm<span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>atomic<span class="op">&lt;</span><span class="bu">std::</span>chrono::steady_clock::time_point<span class="op">&gt;</span> alarmTime<span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>atomic<span class="op">&lt;</span><span class="dt">float</span><span class="op">&gt;</span> distance<span class="op">;</span> <span class="co">// in cm, distance measured by the sensor</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>atomic<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> proximityThreshold<span class="op">;</span> <span class="co">// in cm, distance below which the alarm is triggered</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> appState <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>keepRunning <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>setAlarm <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>alarmTime <span class="op">=</span> noalarmTime<span class="op">,</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>distance <span class="op">=</span> <span class="fl">400.0</span><span class="op">,</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>proximityThreshold <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>Jak widać jest to struktura złożona z niezależnym elementów
+atomicznych, które mogą być w bezpieczny sposób odczytywane i
+aktualizowane przez wątki.</p>
+<p>Definicję sprzętowej konfiguracji wszystkich elementów zebrano w
+zmiennej <code>hardwareConfig</code>. Konfiguracja odpowiednich
+elementów jest przekazywana jako parametr do zainteresowanych wątków.
+Każdy wątek odpowiada za przydzielenie sobie zasobów i ich zwolnienie. W
+większości przypadków występujące w kodzie jawne zwalnianie zasobów może
+być pominięta, dzięki konstrukcji klas zarządzających zasobami zgodnie z
+zasadą RAII (<em>Resource Acquisition Is Initialization</em>), która w
+praktyce oznacza, że każdy zasób przydzielony w konstruktorze powinien
+być zwolniony w destruktorze. Destruktory są wykonywane zawsze, nawet
+gdy nastąpi rzucenie wyjątku (throw), więc stosowanie takiej zasady
+umożliwia bezpieczne zarządzanie zasobami.</p>
+<p>Dzięki modułowej strukturze programu, kod procedur odpowiedzialnych
+za obsługę elementów jest samodzielny i jego analiza nie powinna
+nastręczać trudności.</p>
+<p>Elementy wejściowe interfejsu aplikacji</p>
+<ul>
+<li><strong>GPIO 21</strong>: Przycisk enkodera obrotowego zarządzany
+jako surowa linia GPIO z wykorzystaniem <code>libgpiod</code> w wątku
+<code>rotary_button_thread</code>.</li>
+<li><strong>GPIO 4</strong>: Przycisk zarządzany przez nakładkę
+<code>gpio-key</code> obsługiwany w wątku
+<code>button_thread</code>.</li>
+<li><strong>GPIO 16</strong> i <strong>GPIO 20</strong>: Linie
+wystawianie przez enkoder obrotowy i obsługiwane w wątku
+<code>rotary_encoder_thread</code>.</li>
+<li><strong>GPIO 24</strong>: Linia <em>Echo</em> dalmierza obsługiwana
+w wątku <code>detection_thread</code> z wykorzystaniem klasy
+<code>SR04</code>.</li>
 </ul>
-<div style="background-color: yellow; color:red; padding: 2px;">
-<p>Wykonaj zrzut ekranu (2.1.1) zawierający komendy sesji terminala.</p>
-</div>
+<p>Elementy wyjściowe interfejsu aplikacji</p>
+<ul>
+<li><strong>GPIO 23</strong>: Linia <em>Trigger</em> dalmierza
+obsługiwana w wątku <code>detection_thread</code> z wykorzystaniem klasy
+<code>SR04</code>.</li>
+<li><strong>GPIO 17</strong>: Podświetlenie ekranu sterowane za pomocą
+linii GPIO z wykorzystaniem <code>libgpiod</code> w wątku
+<code>backlight_led_thread</code>.</li>
+<li><strong>GPIO 6</strong>: dioda alarmowa zarządzana przez nakładkę
+<code>gpio-led</code> i sterowana w wątku
+<code>gpio_led_thread</code>.</li>
+<li>Wyświetlacz <strong>ST7789v2</strong> sterowany za pomocą magistrali
+SPI. Jego obsługa zostanie omówiona w jednym z kolejnych ćwiczeń. Za
+treści wyświetlane na ekranie odpowiada wątek
+<code>display_thread</code>.</li>
+</ul>
+<hr />
+<h2 id="zadania-do-wykonania">Zadania do wykonania</h2>
 <h3
-id="zadanie-2-pobierz-konfigurację-linii-za-pomocą-gpioinfo"><strong>Zadanie
-2: Pobierz konfigurację linii za pomocą
-<code>gpioinfo</code></strong></h3>
-<p><strong>Cel</strong>: Użyj <code>gpioinfo</code> z narzędzi
-<code>libgpiod</code>, aby uzyskać szczegółowe informacje o liniach GPIO
-6 i 17.</p>
+id="wstępne-sprawdzenie-konfiguracji-linii-gpio-za-pomocą-opcji-gpio-w-pliku-bootconfig.txt">0.
+Wstępne sprawdzenie konfiguracji linii GPIO za pomocą opcji
+<code>gpio=</code> w pliku <code>/boot/config.txt</code></h3>
+<p>Opcja <code>gpio=</code> w pliku <code>/boot/config.txt</code>
+pozwala na ustawienie parametrów linii GPIO podczas uruchamiania
+systemu. Możemy zdefiniować kierunek (wejście lub wyjście), stan
+początkowy oraz rezystory podciągające dla konkretnych pinów GPIO.
+Dzięki temu linie są odpowiednio przygotowane, zanim system operacyjny
+zacznie z nich korzystać.</p>
+<p>Sprawdź zgodność bieżącej konfiguracji (wykorzystaj polecenie
+<code>cat</code>) z konfiguracją opisaną poniżej.</p>
+<h4 id="składnia-opcji-gpio">Składnia opcji <code>gpio=</code></h4>
+<p>Składnia polecenia jest następująca:</p>
+<pre><code>gpio=&lt;numer_pinu&gt;=&lt;kierunek&gt;,&lt;rezystor&gt;,&lt;stan_początkowy&gt;</code></pre>
 <ul>
-<li><p>Użyj <code>gpioinfo</code>, aby wylistować wszystkie linie
-GPIO</p></li>
-<li><p>Uzyskaj informacje tylko o GPIO 6 i GPIO 17</p></li>
-<li><p>Spróbuj kontrolować GPIO 6 za pomocą <code>gpioset</code>. Jaka
-jest właściwa metoda kontroli tej linii?</p></li>
+<li><code>&lt;numer_pinu&gt;</code>: Numer pinu GPIO (np. 4, 16,
+20).</li>
+<li><code>&lt;kierunek&gt;</code>: Kierunek pracy pinu:
+<ul>
+<li><code>ip</code> lub <code>in</code> — wejście (input).</li>
+<li><code>op</code> lub <code>out</code> — wyjście (output).</li>
+</ul></li>
+<li><code>&lt;rezystor&gt;</code>: Ustawienie rezystora podciągającego:
+<ul>
+<li><code>pu</code> — podciągnięcie do VCC (pull-up).</li>
+<li><code>pd</code> — podciągnięcie do GND (pull-down).</li>
+<li><code>pn</code> — brak podciągnięcia (no pull).</li>
+</ul></li>
+<li><code>&lt;stan_początkowy&gt;</code>: Stan początkowy dla wyjść:
+<ul>
+<li><code>dh</code> — stan wysoki (drive high).</li>
+<li><code>dl</code> — stan niski (drive low).</li>
+</ul></li>
 </ul>
+<h4 id="dodanie-konfiguracji-w-bootconfig.txt">Dodanie konfiguracji w
+<code>/boot/config.txt</code></h4>
+<p>Aby odpowiednio skonfigurować linie GPIO wykorzystywane w ćwiczeniu,
+należy dodać poniższe linie do pliku <code>/boot/config.txt</code>:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode txt"><code class="sourceCode default"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a># Wstępna konfiguracja linii GPIO</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>gpio=4=ip,pd</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>gpio=16=ip,pd</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>gpio=20=ip,pd</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>gpio=21=ip,pd</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>gpio=23=op,dh</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>gpio=24=ip,pd</span></code></pre></div>
+<h4 id="wyjaśnienie-konfiguracji">Wyjaśnienie konfiguracji</h4>
+<ul>
+<li><code>gpio=4=ip,pd</code>: Ustawia GPIO 4 jako wejście z rezystorem
+pull-down.</li>
+<li><code>gpio=16=ip,pd</code> i <code>gpio=20=ip,pd</code>: Ustawia
+GPIO 16 i 20 (enkoder obrotowy) jako wejścia z rezystorem
+pull-down.</li>
+<li><code>gpio=21=ip,pd</code>: Ustawia GPIO 21 (przycisk enkodera) jako
+wejście z rezystorem pull-down.</li>
+<li><code>gpio=23=op,dh</code>: Ustawia GPIO 23 (Trigger dalmierza
+HC-SR04) jako wyjście w stanie wysokim.</li>
+<li><code>gpio=24=ip,pd</code>: Ustawia GPIO 24 (Echo dalmierza) jako
+wejście z rezystorem pull-down.</li>
+<li>Konfiguracja przycisku na GPIO 4 za pomocą
+<code>gpio-key</code></li>
+</ul>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode txt"><code class="sourceCode default"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>dtoverlay=gpio-key,gpio=4,active_low=0,gpio_pull=down,label=button,keycode=16,debounce=200</span></code></pre></div>
+<h4 id="dlaczego-warto-użyć-opcji-gpio">Dlaczego warto użyć opcji
+<code>gpio=</code>?</h4>
+<ul>
+<li><strong>Ustawienie stanów początkowych</strong>: Zapewnia, że linie
+GPIO są w poprawnym stanie zaraz po uruchomieniu systemu.</li>
+<li><strong>Uniknięcie zakłóceń</strong>: Poprawne podciągnięcie linii
+wejściowych zapobiega losowym zmianom stanu (pływaniu) sygnału.</li>
+<li><strong>Bezpieczeństwo urządzeń</strong>: Zapobiega sytuacjom, w
+których nieprawidłowy stan linii GPIO mógłby uszkodzić podłączone
+urządzenia.</li>
+</ul>
+<h4 id="uwagi-dodatkowe">Uwagi dodatkowe</h4>
+<ul>
+<li><strong>Kolejność wpisów</strong>: Upewnij się, że wpisy
+<code>gpio=</code> są umieszczone przed innymi konfiguracjami, aby
+zostały zastosowane we właściwym momencie.</li>
+<li><strong>Zgodność sprzętowa</strong>: Sprawdź dokumentację swojej
+platformy sprzętowej, aby upewnić się, że używane numery GPIO są
+poprawne i dostępne.</li>
+<li><strong>Restart systemu</strong>: Po wprowadzeniu zmian w pliku
+<code>/boot/config.txt</code> należy zrestartować system, aby nowe
+ustawienia zostały zastosowane.</li>
+</ul>
+<hr />
+<h3 id="wyświetlenie-informacji-o-liniach-gpio">1. Wyświetlenie
+informacji o liniach GPIO</h3>
+<p><strong>Polecenie:</strong></p>
+<p>Użyj narzędzia <code>gpiodetect</code> do wyświetlenia dostępnych w
+systemie kontrolerów GPIO oraz <code>gpioinfo</code> z pakietu
+<strong>libgpiod</strong> do wyświetlenia wszystkich dostępnych linii
+GPIO dla kontrolera <code>pinctrl-rp1</code>.</p>
 <div style="background-color: yellow; color:red; padding: 2px;">
-<p>Wykonaj zrzut ekranu (2.2.1) zawierający komendy sesji terminala.</p>
+<p>Wykonaj zrzut/zrzuty ekranu (3.1.x) zawierające wynik działania
+komend. Zrzuty zamieść w sprawozdaniu.</p>
 </div>
-<h3
-id="zadanie-3-steruj-i-sprawdzaj-stan-linii-za-pomocą-gpioset-oraz-gpiogetgpiomonitor"><strong>Zadanie
-3: Steruj i sprawdzaj stan linii za pomocą <code>gpioset</code> oraz
-<code>gpioget</code>/<code>gpiomonitor</code></strong></h3>
-<p><strong>Cel</strong>: Wymuś stan GPIO 17 za pomocą
-<code>gpioset</code> i sprawdź wynik przy użyciu
-<code>gpioget</code>.</p>
-<ul>
-<li><p>Ustaw GPIO 17 jako wyjście i ustaw stan wysoki</p></li>
-<li><p>Zweryfikuj stan linii za pomocą <code>gpioget</code></p></li>
-<li><p>W drugim terminalu monitoruj stan za pomocą
-<code>gpiomonitor</code></p></li>
-<li><p>Ustaw GPIO 17 na niski stan</p></li>
-<li><p>Ponownie zweryfikuj stan linii</p></li>
-<li><p>Steruj GPIO 17 z ustawieniem trwałym</p>
-<p>Domyślnie <code>gpioset</code> ustawia linię i utrzymuje ją tylko tak
-długo, jak długo działa polecenie. Ustaw trwałość za pomocą opcji
-<code>--mode=exit</code>.</p></li>
-</ul>
+<hr />
+<h3 id="monitorowanie-zdarzeń-przycisku-na-gpio-4">2. Monitorowanie
+zdarzeń przycisku na GPIO 4</h3>
+<p><strong>Polecenie:</strong></p>
+<p>Uruchom <code>evtest</code>:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">evtest</span></span></code></pre></div>
+<p>Zobaczysz listę dostępnych urządzeń wejściowych. Wybierz urządzenie
+odpowiadające przyciskowi (np.</p>
+<p>event0</p>
+<p>lub inne z nazwą <code>gpio_keys</code> lub <code>button</code>).</p>
+<p><strong>Przykład:</strong></p>
+<pre><code>No device specified, trying to scan all of /dev/input/event*
+Available devices:
+/dev/input/event0:  gpio_keys
+Select the device event number [0-...]: 0</code></pre>
+<p>Naciskaj i zwalniaj przycisk podłączony do GPIO 4, obserwując
+generowane zdarzenia w terminalu.</p>
 <div style="background-color: yellow; color:red; padding: 2px;">
-<p>Wykonaj zrzut ekranu (2.3.1) zawierający komendy sesji terminala.</p>
+<p>Wykonaj zrzut ekranu (3.2.1) zawierający wynik działania komendy.
+Zrzut zamieść w sprawozdaniu.</p>
 </div>
-<h3
-id="zadanie-4-kontroluj-diodę-led-zarządzaną-przez-nakładkę-gpio-led-za-pomocą-sysfs"><strong>Zadanie
-4: Kontroluj diodę LED zarządzaną przez nakładkę <code>gpio-led</code>
-za pomocą Sysfs</strong></h3>
-<p><strong>Cel</strong>: Użyj interfejsu sysfs do kontrolowania diody
-LED podłączonej do GPIO 6, zarządzanej przez nakładkę
-<code>gpio-led</code>.</p>
-<ul>
-<li><p>Zlokalizuj katalog sysfs dla diody LED za pomocą
-<code>ls</code></p></li>
-<li><p>Włącz diodę LED</p></li>
-<li><p>Wyłącz diodę LED</p></li>
-<li><p>Sprawdź stan diody LED</p></li>
-<li><p>Ustaw diodę LED na miganie za pomocą trybu timer. Zmień czas dla
-stanów on/off diody LED. Następnie wróć do trybu manualnego.</p></li>
-</ul>
+<hr />
+<h3 id="monitorowanie-stanu-przycisku-enkodera-na-gpio-21">3.
+Monitorowanie stanu przycisku enkodera na GPIO 21</h3>
+<p><strong>Polecenie:</strong></p>
+<p>Użyj <code>gpiomon</code> do monitorowania zboczy na GPIO 21. Wykonaj
+komendy monitorujące a) tylko zbocza narastające, b) tylko zbocza
+opadające, c) oba rodzaje zboczy. W czasie aktywnej komendy naciskaj
+przycisk enkodera, aby sprawdzić jej działanie.</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpiomon</span> <span class="op">&lt;</span>opcje<span class="op">&gt;</span> <span class="op">&lt;</span>chip<span class="op">&gt;</span> <span class="op">&lt;</span>lineNum<span class="op">&gt;</span></span></code></pre></div>
+<p>Składnia dostępna po <code>gpiomon -h</code> lub
+<code>man gpiomon</code>.</p>
 <div style="background-color: yellow; color:red; padding: 2px;">
-<p>Wykonaj zrzut ekranu (2.4.1) zawierający komendy sesji terminala.</p>
+<p>Wykonaj zrzut/zrzuty ekranu (3.3.x) zawierający wynik działania
+komendy. Zrzut zamieść w sprawozdaniu.</p>
 </div>
-<h3
-id="zadanie-5-napisz-skrypt-do-sterowania-podświetleniem"><strong>Zadanie
-5: Napisz skrypt do sterowania podświetleniem</strong></h3>
-<p><strong>Cel</strong>: Stwórz skrypt <code>toogle_backlight.sh</code>,
-który będzie przełączał podświetlenie ekranu podłączone do GPIO 17 co
-sekundę <em>Wskazówka</em>: wykorzystaj komendę
-<code>gpioset --mode=exit</code>.</p>
-<ul>
-<li><p>Utwórz pusty plik <code>toogle_backlight.sh</code> i nadaj mu
-uprawnienia wykonywania.</p></li>
-<li><p>Uruchom skrypt</p>
+<hr />
+<h3 id="badanie-sygnałów-enkodera-obrotowego-na-gpio-16-i-gpio-20">4.
+Badanie sygnałów enkodera obrotowego na GPIO 16 i GPIO 20</h3>
+<p><strong>Polecenie:</strong></p>
+<p>Monitoruj stan lini 16 i 20 enkodera obrotowego korzystając z
+<code>gpiomon</code>. Przyjmij wyzwalanie zboczami narastającym i
+opadającym. <em>Wskazówka</em> <code>gpiomon</code> pozwala na
+monitorowanie stanu wielu linii. Wykonaj kilka przejść enkodera w prawo
+(CW), zatrzymaj komendę, a następnie kilka w lewo (CCW). Porównaj
+otrzymane sekwencje.</p>
 <div style="background-color: yellow; color:red; padding: 2px;">
-<p>Wykonaj zrzuty ekranu (2.5.x) zawierające kod skryptu oraz komendy
-sesji terminala.</p>
-</div></li>
-</ul>
-<h3 id="zadanie-6-praca-z-api-c"><strong>Zadanie 6: Praca z API
-C++</strong></h3>
-<ul>
-<li>Uruchom załączoną aplikację <code>cw2-prof</code> na maszynie
-<code>target</code>. Obserwuj jej zachowanie podczas krótkiego i
-długiego naciśnięcia przycisku.</li>
-<li>Skopiuj na <code>target</code> archiwum <code>cw2-student.tar</code>
-i rozpakuj je tam.</li>
-<li>Otwórz wynikowy folder zdalnie za pomocą Visual Studio Code
-uruchomionego na hoście.</li>
-<li>Zbuduj projekt. Zweryfikuj, czy wynikowa aplikacja działa. Zauważ
-różnice w jej zachowaniu podczas krótkiego naciskania klawisza.</li>
-<li>W miejscach oznaczonych jako <code>TODO</code> uzupełnij kod, aby
-naśladować zachowanie <code>cw2-prof</code>. <em>Proszę nie usuwać
-oryginalnych komentarzy.</em></li>
-</ul>
-<div style="background-color: yellow; color:red; padding: 2px;">
-<p>Wykonaj zrzuty ekranu (2.6.x) zawierające uzupełnione fragmenty kodu
-źródłowego. Zrzut zamieść w sprawozdaniu.</p>
+<p>Wykonaj zrzut/zrzuty ekranu (3.4.x) zawierający wynik działania
+komendy. Zrzut zamieść w sprawozdaniu.</p>
 </div>
+<hr />
+<h3 id="pomiar-odległości-z-linii-komend-za-pomocą-dalmierza-hc-sr04">5.
+Pomiar odległości z linii komend za pomocą dalmierza HC-SR04</h3>
+<p><strong>Polecenia:</strong></p>
+<ol start="0" type="1">
+<li><p>Ustaw przeszkodę przed dalmierzem.</p></li>
+<li><p>Otwórz dwie sesje na system <code>target</code>.</p></li>
+<li><p>W sesji <code>A</code> ustaw GPIO 23 jako wyjście i ustaw stan
+niski <em>Trigger</em>:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a> <span class="ex">gpioset</span> gpiochip0 23=0</span></code></pre></div></li>
+<li><p>W sesji B sprawdź, czy <em>Echo</em> jest w stanie niskim:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpioget</span> gpiochip0 24</span></code></pre></div></li>
+<li><p>W sesji B włącz monitorowanie obu zboczy, ogranicz się do dwóch
+zdarzeń, wykorzystaj opcję formatu postaci
+<code>--format="%e %s.%n"</code>, pytajniki zastąp odpowiednimi
+opcjami</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpiomon</span> <span class="pp">???</span> <span class="at">--format</span><span class="op">=</span><span class="st">&quot;%e %s.%n&quot;</span> gpiochip0 24</span></code></pre></div></li>
+<li><p>W sesji A wyzwól sekwencję pomiaru komendą</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a> <span class="ex">gpioset</span> <span class="at">--mode</span><span class="op">=</span>time <span class="at">--usec</span> 20 gpiochip0 23=1 <span class="kw">&amp;&amp;</span> <span class="ex">gpioset</span> gpiochip0 23=0</span></code></pre></div></li>
+<li><p>W sesji A zanotuj różnicę czasu w mikrosekundach. Oblicz
+odległość od przeszkody wg wzoru <span
+class="math display"><em>D</em>[<em>m</em>] = 0.5 * <em>t</em>[<em>μ</em><em>s</em>] * 10<sup>−6</sup> * 340[<em>m</em>/<em>s</em>]</span></p></li>
+</ol>
+<div style="background-color: yellow; color:red; padding: 2px;">
+Wykonaj zrzut ekranu (3.5.1) zawierający wynik działania komendy. Zrzut
+oraz
+<div style="color:blue">
+wyliczoną odległość
+</div>
+<p>zamieść w sprawozdaniu.</p>
+</div>
+<hr />
+<h3 id="badanie-ustawień-pinów-za-pomocą-pinctrl-i-gpioinfo">6. Badanie
+ustawień pinów za pomocą <code>pinctrl</code> i
+<code>gpioinfo</code></h3>
+<p><strong>Uwaga</strong> Główna różnica pomiędzy <code>gpioinfo</code>
+a <code>pinctrl</code> polega na tym, że <code>gpioinfo</code>
+komunikuje się ze sterownikiem kontrolera linii, natomiast
+<code>pinctrl</code> bada/modyfikuje bezpośrednio zawartość rejestrów.
+Używanie <code>pinctrl</code> do modyfikacji nastaw może prowadzić do
+niestabilności systemu, bo wprowadza niezgodność pomiędzy rzeczywistym
+stanem rejestrów a tym, co sobie o nich myśli sterownik systemu
+operacyjnego.</p>
+<p><strong>Polecenia:</strong></p>
+<ol type="1">
+<li><p>Wyświetl aktualną konfigurację pinów:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> /sys/kernel/debug/pinctrl/</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> /sys/kernel/debug/pinctrl/<span class="pp">*</span>-rp1/pins</span></code></pre></div></li>
+<li><p>Sprawdź ustawienia pinów wykorzystywanych w ćwiczeniu</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pinctrl</span> get 4,6,16,17,20,21,23,24</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gpioinfo</span> gpiochip0</span></code></pre></div></li>
+<li><p>W sesji A uruchom aplikację <code>demo</code></p></li>
+<li><p>w sesji B sprawdź ponownie ustawienia pinów. W rezultatach
+komendy <code>gpioinfo</code> zwróć uwagę na nazwy przypisane do
+pinów.</p></li>
+</ol>
+<div style="background-color: yellow; color:red; padding: 2px;">
+<p>Wykonaj zrzut ekranu (3.6.1) zawierający wynik działania komendy z
+punktu 4. Zrzut zamieść w sprawozdaniu.</p>
+</div>
+<hr />
+<h3 id="praca-z-kodem-aplikacji">7. Praca z kodem aplikacji</h3>
+<p><strong>Polecenie</strong></p>
+<p>Zbuduj dostarczony kod źródłowy. Jest to aplikacja nieco okaleczona w
+porównaniu do dostarczonej wersji <code>demo</code>. Celem dalszych
+działań jest przywrócenie pierwotnej funkcjonalności. Miejsca wymagające
+modyfikacji oznaczono jako <code>TODO</code>. Stosuj się do opisów
+zamieszczonych w komentarzach. Przed wykonaniem zrzutu ekranu nie kasuj
+komentarzy zawierających polecenie.</p>
