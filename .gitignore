@@ -1,0 +1,29 @@
+# Ignore object files, shared libraries, and executables
+*.o
+*.a
+*.so
+
+# Ignore dependency files
+*.d
+
+# Ignore build directories
+/build_dir/
+/lib/
+
+# Ignore editor and IDE specific files
+*.swp
+*~
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+*.bak
+*.old
+
+# Ignore generated documentation
+/*.html
+/*.pdf
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db

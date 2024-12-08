@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "make",
+      "targetName": "build",
+      "makeFileRelativePath": "Makefile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "label": "make: build",
+      "detail": "./Makefile"
+    },
+    {
+      "type": "make",
+      "targetName": "clean",
+      "makeFileRelativePath": "Makefile",
+      "problemMatcher": [],
+      "label": "make: clean",
+      "detail": "./Makefile"
+    },
+    {
+      "label": "Copy Binary to Remote",
+      "type": "shell",
+      "command": "scp ./build_dir/app target:",
+      "dependsOn": "make: build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Copy and Run on Remote",
+      "type": "shell",
+      "command": "ssh target  './app'",
+      "dependsOn": "Copy Binary to Remote",
+      "problemMatcher": []
+    },
+    {
+      "label": "Start gdbserver on Remote",
+      "type": "shell",
+      "command": "ssh target 'gdbserver --once :2345 ./app'",
+      "isBackground": true,
+      "dependsOn": "Copy Binary to Remote",
+      "problemMatcher": []
+    }
+  ]
+}

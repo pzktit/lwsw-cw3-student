@@ -1,0 +1,13 @@
+{
+  "version": "0.2",
+  "language": "en,pl", // Specify both English and Polish
+  "dictionaries": ["en", "pl"], // Use both dictionaries
+  "ignoreRegExpList": [
+    "/```[\\s\\S]*?```/", // Ignores code blocks in Markdown
+    "/`[^`]*`/" // Ignores inline code
+  ],
+  "dictionaryDefinitions": [
+    { "name": "en", "path": "cspell-dict-en-us/cspell-ext.json" },
+    { "name": "pl", "path": "cspell-dict-pl/cspell-ext.json" }
+  ]
+}

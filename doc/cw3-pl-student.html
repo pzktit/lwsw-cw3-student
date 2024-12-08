@@ -1,0 +1,136 @@
+<h1 id="linux-w-systemach-wbudowanych"><strong>Linux w Systemach
+Wbudowanych</strong></h1>
+<h1
+id="konfiguracja-linii-gpio-jako-wyjść-w-systemach-raspberry-pi-i-linux"><strong>2.
+Konfiguracja linii GPIO jako wyjść w systemach Raspberry Pi i
+Linux</strong></h1>
+<p><strong>Piotr ZAWADZKI</strong></p>
+<h2 id="zadania-do-wykonania">2.5 Zadania do wykonania</h2>
+<p>Elementy interfejsu aplikacji</p>
+<ul>
+<li><strong>GPIO 6</strong>: Zarządzane przez nakładkę
+<code>gpio-led</code> (kontrola diody LED za pomocą sysfs).</li>
+<li><strong>GPIO 17</strong>: Podświetlenie ekranu zarządzane
+bezpośrednio przy użyciu <code>libgpiod</code> (narzędzia
+<code>gpiod</code>).</li>
+<li><strong>GPIO 4</strong>: Przycisk chwilowy normalnie otwarty — służy
+do zmiany stanu aplikacji. Obsługa przycisków wejściowych jest jednym z
+elementów następnego cwiczenia.</li>
+</ul>
+<div style="text-align: center;">
+<figure>
+<img src="cw2-export.png" alt="Schemat układu" />
+<figcaption aria-hidden="true">Schemat układu</figcaption>
+</figure>
+</div>
+<h3 id="zadanie-1-sprawdź-stany-pinów-za-pomocą-pinctrl"><strong>Zadanie
+1: Sprawdź stany pinów za pomocą <code>pinctrl</code></strong></h3>
+<p><strong>Cel</strong>: Użyj narzędzia <code>pinctrl</code>, aby
+sprawdzić aktualny stan pinów oraz dostępne alternatywne funkcje dla
+GPIO 6 i GPIO 17.</p>
+<ul>
+<li><p>Zidentyfikuj kontroler pinów</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> /sys/kernel/debug/pinctrl/</span></code></pre></div>
+<p>Następnie użyj <code>rpi</code>.</p></li>
+<li><p>Sprawdź stan pinów dla GPIO 6</p></li>
+<li><p>Wylistuj dostępne funkcje dla GPIO 6</p></li>
+<li><p>Powtórz dla GPIO 17</p></li>
+</ul>
+<div style="background-color: yellow; color:red; padding: 2px;">
+<p>Wykonaj zrzut ekranu (2.1.1) zawierający komendy sesji terminala.</p>
+</div>
+<h3
+id="zadanie-2-pobierz-konfigurację-linii-za-pomocą-gpioinfo"><strong>Zadanie
+2: Pobierz konfigurację linii za pomocą
+<code>gpioinfo</code></strong></h3>
+<p><strong>Cel</strong>: Użyj <code>gpioinfo</code> z narzędzi
+<code>libgpiod</code>, aby uzyskać szczegółowe informacje o liniach GPIO
+6 i 17.</p>
+<ul>
+<li><p>Użyj <code>gpioinfo</code>, aby wylistować wszystkie linie
+GPIO</p></li>
+<li><p>Uzyskaj informacje tylko o GPIO 6 i GPIO 17</p></li>
+<li><p>Spróbuj kontrolować GPIO 6 za pomocą <code>gpioset</code>. Jaka
+jest właściwa metoda kontroli tej linii?</p></li>
+</ul>
+<div style="background-color: yellow; color:red; padding: 2px;">
+<p>Wykonaj zrzut ekranu (2.2.1) zawierający komendy sesji terminala.</p>
+</div>
+<h3
+id="zadanie-3-steruj-i-sprawdzaj-stan-linii-za-pomocą-gpioset-oraz-gpiogetgpiomonitor"><strong>Zadanie
+3: Steruj i sprawdzaj stan linii za pomocą <code>gpioset</code> oraz
+<code>gpioget</code>/<code>gpiomonitor</code></strong></h3>
+<p><strong>Cel</strong>: Wymuś stan GPIO 17 za pomocą
+<code>gpioset</code> i sprawdź wynik przy użyciu
+<code>gpioget</code>.</p>
+<ul>
+<li><p>Ustaw GPIO 17 jako wyjście i ustaw stan wysoki</p></li>
+<li><p>Zweryfikuj stan linii za pomocą <code>gpioget</code></p></li>
+<li><p>W drugim terminalu monitoruj stan za pomocą
+<code>gpiomonitor</code></p></li>
+<li><p>Ustaw GPIO 17 na niski stan</p></li>
+<li><p>Ponownie zweryfikuj stan linii</p></li>
+<li><p>Steruj GPIO 17 z ustawieniem trwałym</p>
+<p>Domyślnie <code>gpioset</code> ustawia linię i utrzymuje ją tylko tak
+długo, jak długo działa polecenie. Ustaw trwałość za pomocą opcji
+<code>--mode=exit</code>.</p></li>
+</ul>
+<div style="background-color: yellow; color:red; padding: 2px;">
+<p>Wykonaj zrzut ekranu (2.3.1) zawierający komendy sesji terminala.</p>
+</div>
+<h3
+id="zadanie-4-kontroluj-diodę-led-zarządzaną-przez-nakładkę-gpio-led-za-pomocą-sysfs"><strong>Zadanie
+4: Kontroluj diodę LED zarządzaną przez nakładkę <code>gpio-led</code>
+za pomocą Sysfs</strong></h3>
+<p><strong>Cel</strong>: Użyj interfejsu sysfs do kontrolowania diody
+LED podłączonej do GPIO 6, zarządzanej przez nakładkę
+<code>gpio-led</code>.</p>
+<ul>
+<li><p>Zlokalizuj katalog sysfs dla diody LED za pomocą
+<code>ls</code></p></li>
+<li><p>Włącz diodę LED</p></li>
+<li><p>Wyłącz diodę LED</p></li>
+<li><p>Sprawdź stan diody LED</p></li>
+<li><p>Ustaw diodę LED na miganie za pomocą trybu timer. Zmień czas dla
+stanów on/off diody LED. Następnie wróć do trybu manualnego.</p></li>
+</ul>
+<div style="background-color: yellow; color:red; padding: 2px;">
+<p>Wykonaj zrzut ekranu (2.4.1) zawierający komendy sesji terminala.</p>
+</div>
+<h3
+id="zadanie-5-napisz-skrypt-do-sterowania-podświetleniem"><strong>Zadanie
+5: Napisz skrypt do sterowania podświetleniem</strong></h3>
+<p><strong>Cel</strong>: Stwórz skrypt <code>toogle_backlight.sh</code>,
+który będzie przełączał podświetlenie ekranu podłączone do GPIO 17 co
+sekundę <em>Wskazówka</em>: wykorzystaj komendę
+<code>gpioset --mode=exit</code>.</p>
+<ul>
+<li><p>Utwórz pusty plik <code>toogle_backlight.sh</code> i nadaj mu
+uprawnienia wykonywania.</p></li>
+<li><p>Uruchom skrypt</p>
+<div style="background-color: yellow; color:red; padding: 2px;">
+<p>Wykonaj zrzuty ekranu (2.5.x) zawierające kod skryptu oraz komendy
+sesji terminala.</p>
+</div></li>
+</ul>
+<h3 id="zadanie-6-praca-z-api-c"><strong>Zadanie 6: Praca z API
+C++</strong></h3>
+<ul>
+<li>Uruchom załączoną aplikację <code>cw2-prof</code> na maszynie
+<code>target</code>. Obserwuj jej zachowanie podczas krótkiego i
+długiego naciśnięcia przycisku.</li>
+<li>Skopiuj na <code>target</code> archiwum <code>cw2-student.tar</code>
+i rozpakuj je tam.</li>
+<li>Otwórz wynikowy folder zdalnie za pomocą Visual Studio Code
+uruchomionego na hoście.</li>
+<li>Zbuduj projekt. Zweryfikuj, czy wynikowa aplikacja działa. Zauważ
+różnice w jej zachowaniu podczas krótkiego naciskania klawisza.</li>
+<li>W miejscach oznaczonych jako <code>TODO</code> uzupełnij kod, aby
+naśladować zachowanie <code>cw2-prof</code>. <em>Proszę nie usuwać
+oryginalnych komentarzy.</em></li>
+</ul>
+<div style="background-color: yellow; color:red; padding: 2px;">
+<p>Wykonaj zrzuty ekranu (2.6.x) zawierające uzupełnione fragmenty kodu
+źródłowego. Zrzut zamieść w sprawozdaniu.</p>
+</div>

@@ -1,0 +1,743 @@
+<h1 id="linux-w-systemach-wbudowanych"><strong>Linux w Systemach
+Wbudowanych</strong></h1>
+<h1
+id="wykorzystanie-linii-gpio-jako-wejść-w-systemach-raspberry-pi-i-linux"><strong>3.
+Wykorzystanie linii GPIO jako wejść w systemach Raspberry Pi i
+Linux</strong></h1>
+<p><strong>Piotr ZAWADZKI</strong></p>
+<h2 id="wstęp">Wstęp</h2>
+<h3 id="cel-opracowania">Cel opracowania</h3>
+<p>Celem tego opracowania jest przedstawienie metod wykorzystania linii
+GPIO jako wejść w systemie Linux na przykładzie Raspberry Pi. Omówimy
+narzędzia i API libgpiod oraz przestarzały interfejs sysfs, aby
+dostarczyć pełnej wiedzy na temat dostępnych rozwiązań i pomóc w wyborze
+najbardziej odpowiedniego podejścia w przyszłych projektach.</p>
+<h3 id="krótkie-wprowadzenie-do-gpio">Krótkie wprowadzenie do GPIO</h3>
+<p>GPIO (ang. General Purpose Input/Output) to uniwersalne linie
+wejścia/wyjścia, które umożliwiają mikrokomputerom komunikację z
+urządzeniami zewnętrznymi. Na Raspberry Pi linie GPIO pozwalają na
+odczyt stanów logicznych z czujników, przycisków i innych urządzeń
+wejściowych, a także na sterowanie diodami LED, silnikami czy
+przekaźnikami.</p>
+<h3 id="podstawowe-pojęcia-i-terminologia">Podstawowe pojęcia i
+terminologia</h3>
+<p>Linia GPIO: pojedynczy pin na płytce Raspberry Pi, który może działać
+jako wejście lub wyjście cyfrowe. Wejście cyfrowe: konfiguracja linii
+GPIO pozwalająca na odczyt stanu logicznego (wysoki lub niski)
+urządzenia zewnętrznego. Wyjście cyfrowe: konfiguracja linii GPIO
+umożliwiająca ustawienie stanu logicznego na pinie w celu sterowania
+urządzeniem zewnętrznym. Pull-up/Pull-down resistor: rezystory
+podciągające stosowane w celu zapewnienia stabilnego stanu logicznego
+linii GPIO, gdy nie jest ona bezpośrednio sterowana. libgpiod:
+nowoczesne API i zestaw narzędzi użytkowych do obsługi linii GPIO w
+systemie Linux, zastępujące przestarzały interfejs sysfs. Interfejs
+sysfs: starszy sposób dostępu do linii GPIO poprzez system plików
+wirtualnych w Linuxie, obecnie uznawany za przestarzały.</p>
+<h2 id="narzędzia-i-api-libgpiod">Narzędzia i API libgpiod</h2>
+<h3 id="wprowadzenie-do-libgpiod">Wprowadzenie do libgpiod</h3>
+<p><code>libgpiod</code> to nowoczesna biblioteka oraz zestaw narzędzi
+wiersza poleceń służących do obsługi linii GPIO w systemach Linux.
+Została stworzona jako następca przestarzałego interfejsu
+<code>sysfs</code> i wykorzystuje nowy interfejs urządzeń znakowych
+<code>/dev/gpiochip*</code>. Dzięki <code>libgpiod</code> programiści
+mogą efektywnie zarządzać liniami GPIO, korzystając z udoskonalonych
+mechanizmów oferowanych przez jądro systemu Linux.</p>
+<h3 id="instalacja-libgpiod">Instalacja libgpiod</h3>
+<p>Aby zainstalować <code>libgpiod</code> na Raspberry Pi z systemem
+Linux, można użyć menedżera pakietów <code>apt</code>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt update</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install <span class="at">-y</span> libgpiod-dev gpiod</span></code></pre></div>
+<p>Spowoduje to zainstalowanie zarówno bibliotek potrzebnych do
+programowania, jak i narzędzi wiersza poleceń.</p>
+<h3 id="podstawowe-komendy-narzędzi-libgpiod">Podstawowe komendy
+narzędzi libgpiod</h3>
+<p><code>libgpiod</code> dostarcza zestaw narzędzi umożliwiających
+interakcję z liniami GPIO bez konieczności pisania kodu. Oto
+najważniejsze z nich:</p>
+<h4 id="gpiodetect"><code>gpiodetect</code></h4>
+<p>Wyświetla listę dostępnych układów GPIO w systemie.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpiodetect</span></span></code></pre></div>
+<p>Przykładowy wynik:</p>
+<pre><code>gpiochip0 [pinctrl-bcm2835] (54 lines)</code></pre>
+<h4 id="gpioinfo"><code>gpioinfo</code></h4>
+<p>Podaje szczegółowe informacje o liniach GPIO dla wybranego
+układu.</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpioinfo</span> gpiochip0</span></code></pre></div>
+<p>Można również wyświetlić informacje o wszystkich układach:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpioinfo</span></span></code></pre></div>
+<h4 id="gpioset"><code>gpioset</code></h4>
+<p>Ustawia stan wyjściowy na wybranych liniach GPIO.</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpioset</span> gpiochip0 17=1</span></code></pre></div>
+<p>Powyższe polecenie ustawia linię GPIO17 na stan wysoki.</p>
+<h4 id="gpioget"><code>gpioget</code></h4>
+<p>Odczytuje stan linii GPIO skonfigurowanych jako wejścia.</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpioget</span> gpiochip0 17</span></code></pre></div>
+<p>Zwraca aktualny stan logiczny linii GPIO17.</p>
+<h4 id="gpiofind"><code>gpiofind</code></h4>
+<p>Znajduje numer linii GPIO na podstawie jej nazwy.</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpiofind</span> <span class="st">&quot;GPIO17&quot;</span></span></code></pre></div>
+<p>Jeśli linia o podanej nazwie istnieje, zwróci jej numer.</p>
+<h4 id="gpiomon"><code>gpiomon</code></h4>
+<p>Monitoruje zmiany stanu na wybranych liniach GPIO w czasie
+rzeczywistym.</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpiomon</span> gpiochip0 21</span></code></pre></div>
+<p>Powyższe polecenie będzie na bieżąco wyświetlać zmiany stanu na linii
+GPIO17. Przykładowy wynik:</p>
+<pre><code>event: FALLING EDGE offset: 17 timestamp: [1234567.890]
+event: RISING EDGE offset: 17 timestamp: [1234568.123]</code></pre>
+<p>Można też monitorować wiele linii jednocześnie:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpiomon</span> gpiochip0 21 16</span></code></pre></div>
+<p>Polecenie jest szczególnie przydatne podczas debugowania i testowania
+połączeń GPIO.</p>
+<h4 id="programowanie-z-użyciem-libgpiod">Programowanie z użyciem
+libgpiod</h4>
+<p>Nowoczesna wersja libgpiod udostępnia API C++, które oferuje
+obiektowy interfejs dostępu do GPIO.</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;gpiod.hpp&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdexcept&gt;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Otwórz chip GPIO</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        gpiod<span class="op">::</span>chip chip<span class="op">{</span><span class="st">&quot;gpiochip0&quot;</span><span class="op">};</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Uzyskaj linię GPIO</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">unsigned</span> <span class="dt">int</span> line_num <span class="op">=</span> <span class="dv">17</span><span class="op">;</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">auto</span> line <span class="op">=</span> chip<span class="op">.</span>get_line<span class="op">(</span>line_num<span class="op">);</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Skonfiguruj jako wejście</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        line<span class="op">.</span>request<span class="op">({</span><span class="st">&quot;gpio_input_example&quot;</span><span class="op">,</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>                     gpiod<span class="op">::</span>line_request<span class="op">::</span>DIRECTION_INPUT<span class="op">,</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>                     gpiod<span class="op">::</span>line_request<span class="op">::</span>FLAG_BIAS_PULL_UP<span class="op">});</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Odczytaj wartość</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> value <span class="op">=</span> line<span class="op">.</span>get_value<span class="op">();</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Stan linii GPIO&quot;</span> <span class="op">&lt;&lt;</span> line_num <span class="op">&lt;&lt;</span> <span class="st">&quot;: &quot;</span> <span class="op">&lt;&lt;</span> value <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Zasoby zostaną automatycznie zwolnione dzięki RAII</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> <span class="st">&quot;Błąd: &quot;</span> <span class="op">&lt;&lt;</span> e<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Aby skompilować powyższy kod:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">g++</span> <span class="at">-o</span> gpio_input_example gpio_input_example.cpp <span class="at">-lgpiodcxx</span></span></code></pre></div>
+<p>Główne zalety API C++:</p>
+<ul>
+<li>Obsługa wyjątków zamiast kodów błędów.</li>
+<li>Automatyczne zarządzanie zasobami (RAII).</li>
+<li>Bardziej zwięzły i bezpieczniejszy kod.</li>
+<li>Wsparcie dla nowoczesnych funkcji C++.</li>
+</ul>
+<p>Let me outline the documentation for the deprecated sysfs GPIO
+interface.</p>
+<h3 id="przestarzały-interfejs-sysfs">Przestarzały interfejs sysfs</h3>
+<h4 id="wprowadzenie-do-sysfs">Wprowadzenie do sysfs</h4>
+<p>Interfejs sysfs dla GPIO, dostępny w <code>/sys/class/gpio/</code>,
+był standardowym sposobem kontroli GPIO w Linuxie przed wprowadzeniem
+libgpiod. Jest obecnie oznaczony jako przestarzały i zostanie usunięty w
+przyszłych wersjach jądra.</p>
+<h4 id="konfiguracja-gpio-jako-wejścia-za-pomocą-sysfs">Konfiguracja
+GPIO jako wejścia za pomocą sysfs</h4>
+<p>Podstawowa ścieżka dostępu do GPIO przez sysfs:</p>
+<pre class="text"><code>/sys/class/gpio/
+├── export
+├── unexport
+└── gpioN/
+    ├── direction
+    ├── value
+    └── edge</code></pre>
+<h4 id="eksportowanie-linii-gpio">Eksportowanie linii GPIO</h4>
+<p>Przed użyciem GPIO należy je “wyeksportować”:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Eksportowanie GPIO17</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;17&quot;</span> <span class="op">&gt;</span> /sys/class/gpio/export</span></code></pre></div>
+<h4 id="ustawianie-kierunku-linii">Ustawianie kierunku linii</h4>
+<p>Po wyeksportowaniu, ustawiamy kierunek na wejście:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;in&quot;</span> <span class="op">&gt;</span> /sys/class/gpio/gpio17/direction</span></code></pre></div>
+<h4 id="odczyt-stanu-linii-gpio">Odczyt stanu linii GPIO</h4>
+<p>Stan linii można odczytać z pliku <code>value</code>:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> /sys/class/gpio/gpio17/value</span></code></pre></div>
+<h4 id="przykładowy-kod-w-bash">Przykładowy kod w Bash</h4>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="va">GPIO</span><span class="op">=</span>17</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Eksportuj GPIO jeśli nie jest już wyeksportowane</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="ot">!</span> <span class="ot">-d</span> <span class="st">&quot;/sys/class/gpio/gpio</span><span class="va">$GPIO</span><span class="st">&quot;</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$GPIO</span><span class="st">&quot;</span> <span class="op">&gt;</span> /sys/class/gpio/export</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sleep</span> 0.1</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Ustaw jako wejście</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;in&quot;</span> <span class="op">&gt;</span> /sys/class/gpio/gpio<span class="va">$GPIO</span>/direction</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Odczytaj wartość</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="va">value</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> /sys/class/gpio/gpio<span class="va">$GPIO</span>/value<span class="va">)</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;Stan GPIO</span><span class="va">$GPIO</span><span class="st">: </span><span class="va">$value</span><span class="st">&quot;</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Zwolnij GPIO</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$GPIO</span><span class="st">&quot;</span> <span class="op">&gt;</span> /sys/class/gpio/unexport</span></code></pre></div>
+<h4 id="przykładowy-kod-w-c">Przykładowy kod w C++</h4>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;fstream&gt;</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string&gt;</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdexcept&gt;</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> GPIOInput <span class="op">{</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span><span class="op">:</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> pin<span class="op">;</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    GPIOInput<span class="op">(</span><span class="dt">int</span> gpio_pin<span class="op">)</span> <span class="op">:</span> pin<span class="op">(</span>gpio_pin<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>        export_gpio<span class="op">();</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>        set_direction<span class="op">();</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">~</span>GPIOInput<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>        unexport_gpio<span class="op">();</span></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> export_gpio<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>ofstream export_file<span class="op">(</span><span class="st">&quot;/sys/class/gpio/export&quot;</span><span class="op">);</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>export_file<span class="op">)</span> <span class="cf">throw</span> <span class="bu">std::</span>runtime_error<span class="op">(</span><span class="st">&quot;Nie można otworzyć pliku export&quot;</span><span class="op">);</span></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>        export_file <span class="op">&lt;&lt;</span> pin<span class="op">;</span></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> set_direction<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>string path <span class="op">=</span> <span class="st">&quot;/sys/class/gpio/gpio&quot;</span> <span class="op">+</span> <span class="bu">std::</span>to_string<span class="op">(</span>pin<span class="op">)</span> <span class="op">+</span> <span class="st">&quot;/direction&quot;</span><span class="op">;</span></span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>ofstream direction_file<span class="op">(</span>path<span class="op">);</span></span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>direction_file<span class="op">)</span> <span class="cf">throw</span> <span class="bu">std::</span>runtime_error<span class="op">(</span><span class="st">&quot;Nie można ustawić kierunku&quot;</span><span class="op">);</span></span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>        direction_file <span class="op">&lt;&lt;</span> <span class="st">&quot;in&quot;</span><span class="op">;</span></span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> read_value<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>string path <span class="op">=</span> <span class="st">&quot;/sys/class/gpio/gpio&quot;</span> <span class="op">+</span> <span class="bu">std::</span>to_string<span class="op">(</span>pin<span class="op">)</span> <span class="op">+</span> <span class="st">&quot;/value&quot;</span><span class="op">;</span></span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>ifstream value_file<span class="op">(</span>path<span class="op">);</span></span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>value_file<span class="op">)</span> <span class="cf">throw</span> <span class="bu">std::</span>runtime_error<span class="op">(</span><span class="st">&quot;Nie można odczytać wartości&quot;</span><span class="op">);</span></span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a>        <span class="dt">char</span> value<span class="op">;</span></span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>        value_file <span class="op">&gt;&gt;</span> value<span class="op">;</span></span>
+<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> value <span class="op">-</span> <span class="ch">&#39;0&#39;</span><span class="op">;</span></span>
+<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> unexport_gpio<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>ofstream unexport_file<span class="op">(</span><span class="st">&quot;/sys/class/gpio/unexport&quot;</span><span class="op">);</span></span>
+<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>unexport_file<span class="op">)</span> <span class="cf">return</span><span class="op">;</span> <span class="co">// Ignoruj błąd przy zwalnianiu</span></span>
+<span id="cb19-45"><a href="#cb19-45" aria-hidden="true" tabindex="-1"></a>        unexport_file <span class="op">&lt;&lt;</span> pin<span class="op">;</span></span>
+<span id="cb19-46"><a href="#cb19-46" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-47"><a href="#cb19-47" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb19-48"><a href="#cb19-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-49"><a href="#cb19-49" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb19-50"><a href="#cb19-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb19-51"><a href="#cb19-51" aria-hidden="true" tabindex="-1"></a>        GPIOInput gpio<span class="op">(</span><span class="dv">17</span><span class="op">);</span></span>
+<span id="cb19-52"><a href="#cb19-52" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Stan GPIO17: &quot;</span> <span class="op">&lt;&lt;</span> gpio<span class="op">.</span>read_value<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb19-53"><a href="#cb19-53" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-54"><a href="#cb19-54" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> <span class="st">&quot;Błąd: &quot;</span> <span class="op">&lt;&lt;</span> e<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb19-55"><a href="#cb19-55" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb19-56"><a href="#cb19-56" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-57"><a href="#cb19-57" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb19-58"><a href="#cb19-58" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Let me outline a comparison between libgpiod and sysfs GPIO
+interfaces.</p>
+<h2 id="porównanie-libgpiod-i-sysfs">Porównanie libgpiod i sysfs</h2>
+<h3 id="zalety-i-wady-obu-podejść">Zalety i wady obu podejść</h3>
+<h4 id="libgpiod">libgpiod</h4>
+<p>Zalety:</p>
+<ul>
+<li>Atomowe operacje na liniach GPIO</li>
+<li>Lepsza obsługa współbieżności</li>
+<li>Nowoczesne API w C i C++</li>
+<li>Narzędzia wiersza poleceń</li>
+<li>Możliwość rezerwacji wielu linii w jednej operacji</li>
+<li>Obsługa nazw linii GPIO</li>
+<li>Lepsza wydajność</li>
+</ul>
+<p>Wady:</p>
+<ul>
+<li>Wymaga nowszych wersji jądra Linux (≥4.8)</li>
+<li>Mniej dokumentacji i przykładów</li>
+<li>Konieczność linkowania z biblioteką</li>
+</ul>
+<h4 id="sysfs">sysfs</h4>
+<p>Zalety:</p>
+<ul>
+<li>Prosta implementacja</li>
+<li>Łatwy dostęp z poziomu skryptów</li>
+<li>Działa na starszych systemach</li>
+<li>Dobra dokumentacja i wiele przykładów</li>
+</ul>
+<p>Wady:</p>
+<ul>
+<li>Przestarzały interfejs</li>
+<li>Brak atomiczności operacji</li>
+<li>Problemy ze współbieżnością</li>
+<li>Niższa wydajność</li>
+<li>Ograniczona funkcjonalność</li>
+<li>Oznaczony jako deprecated</li>
+</ul>
+<h3 id="przyszłość-obsługi-gpio-w-systemie-linux">Przyszłość obsługi
+GPIO w systemie Linux</h3>
+<ul>
+<li>Interfejs sysfs zostanie całkowicie usunięty w przyszłych wersjach
+jądra</li>
+<li>libgpiod jest oficjalnym następcą i zalecanym interfejsem</li>
+<li>Rozwój libgpiod koncentruje się na:
+<ul>
+<li>Rozszerzeniu funkcjonalności</li>
+<li>Poprawie wydajności</li>
+<li>Lepszej integracji z systemem</li>
+<li>Wsparciu dla nowych funkcji sprzętowych</li>
+</ul></li>
+<li>Zalecana migracja do libgpiod dla nowych projektów</li>
+</ul>
+<p>Przykład różnicy w kodzie:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// libgpiod - nowoczesne podejście</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>gpiod<span class="op">::</span>chip chip<span class="op">{</span><span class="st">&quot;gpiochip0&quot;</span><span class="op">};</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> line <span class="op">=</span> chip<span class="op">.</span>get_line<span class="op">(</span><span class="dv">17</span><span class="op">);</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>line<span class="op">.</span>request<span class="op">({</span><span class="st">&quot;app&quot;</span><span class="op">,</span> gpiod<span class="op">::</span>line_request<span class="op">::</span>DIRECTION_INPUT<span class="op">});</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> value <span class="op">=</span> line<span class="op">.</span>get_value<span class="op">();</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">// sysfs - stare podejście</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>ofstream export_file<span class="op">(</span><span class="st">&quot;/sys/class/gpio/export&quot;</span><span class="op">);</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>export_file <span class="op">&lt;&lt;</span> <span class="st">&quot;17&quot;</span><span class="op">;</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>ofstream direction_file<span class="op">(</span><span class="st">&quot;/sys/class/gpio/gpio17/direction&quot;</span><span class="op">);</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>direction_file <span class="op">&lt;&lt;</span> <span class="st">&quot;in&quot;</span><span class="op">;</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>ifstream value_file<span class="op">(</span><span class="st">&quot;/sys/class/gpio/gpio17/value&quot;</span><span class="op">);</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> value<span class="op">;</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>value_file <span class="op">&gt;&gt;</span> value<span class="op">;</span></span></code></pre></div>
+<p>Przepraszam za błąd. Poprawię konfigurację linii GPIO, aby
+odpowiednio obsługiwały wyzwalanie zboczem.</p>
+<h3
+id="konfiguracja-przycisku-chwilowego-jako-wejścia-za-pomocą-dedykowanego-sterownika-gpio_keys">Konfiguracja
+przycisku chwilowego jako wejścia za pomocą dedykowanego sterownika
+gpio_keys</h3>
+<h4 id="koncepcja-działania-sterownika-gpio_keys">Koncepcja działania
+sterownika gpio_keys</h4>
+<p>Sterownik <code>gpio_keys</code> jest częścią jądra Linux, który
+umożliwia obsługę przycisków podłączonych do linii GPIO jako
+standardowych urządzeń wejściowych. Sterownik ten mapuje zdarzenia
+fizyczne (np. wciśnięcie przycisku) na zdarzenia wejściowe systemu
+Linux, takie jak naciśnięcie klawisza na klawiaturze. Dzięki temu
+przyciski GPIO mogą być obsługiwane przez standardowe mechanizmy
+wejściowe systemu, co upraszcza ich integrację z aplikacjami
+użytkownika.</p>
+<h4 id="zasada-działania">Zasada działania</h4>
+<ol type="1">
+<li><p><strong>Definicja przycisku w Device Tree</strong>:</p>
+<ul>
+<li>Konfiguracja przycisku odbywa się poprzez plik Device Tree (DT),
+który opisuje sprzęt systemu.</li>
+<li>W pliku DT definiujemy węzeł <code>gpio-keys</code>, który zawiera
+informacje o przyciskach, takie jak numer GPIO, typ zdarzenia i kod
+klawisza.</li>
+</ul></li>
+<li><p><strong>Obsługa zdarzeń przez jądro</strong>:</p>
+<ul>
+<li>Sterownik <code>gpio_keys</code> monitoruje linie GPIO
+skonfigurowane w DT.</li>
+<li>Gdy wykryje zmianę stanu (np. wciśnięcie lub zwolnienie przycisku),
+generuje odpowiednie zdarzenie wejściowe.</li>
+<li>Zdarzenia te są przekazywane do systemu wejściowego Linux, co
+pozwala na ich obsługę przez aplikacje użytkownika.</li>
+</ul></li>
+<li><p><strong>Integracja z systemem wejściowym</strong>:</p>
+<ul>
+<li>Zdarzenia generowane przez <code>gpio_keys</code> są widoczne jako
+standardowe zdarzenia wejściowe (np. klawisze klawiatury).</li>
+<li>Aplikacje mogą korzystać z tych zdarzeń bez konieczności
+bezpośredniego dostępu do GPIO.</li>
+</ul></li>
+</ol>
+<h4 id="przykład-konfiguracji-w-device-tree">Przykład konfiguracji w
+Device Tree</h4>
+<p>Poniżej znajduje się przykładowa konfiguracja przycisku chwilowego w
+pliku Device Tree:</p>
+<pre class="dts"><code>/ {
+    gpio-keys {
+        compatible = &quot;gpio-keys&quot;;
+        pinctrl-names = &quot;default&quot;;
+        pinctrl-0 = &lt;&amp;pinctrl_gpio_keys&gt;;
+
+        button@0 {
+            label = &quot;gpio_button1&quot;;
+            gpios = &lt;&amp;gpio 17 GPIO_ACTIVE_HIGH&gt;;
+            linux,code = &lt;KEY_ENTER&gt;;
+            debounce-interval = &lt;10&gt;;
+        };
+
+        button@1 {
+            label = &quot;gpio_button2&quot;;
+            gpios = &lt;&amp;gpio 18 GPIO_ACTIVE_HIGH&gt;;
+            linux,code = &lt;KEY_ESC&gt;;
+            debounce-interval = &lt;10&gt;;
+        };
+    };
+};
+
+&amp;gpio {
+    pinctrl_gpio_keys: gpio_keys {
+        pinmux = &lt;PINMUX_GPIO_17&gt;, &lt;PINMUX_GPIO_18&gt;;
+        bias-pull-down;
+    };
+};</code></pre>
+<h4 id="wyjaśnienie-konfiguracji">Wyjaśnienie konfiguracji</h4>
+<ul>
+<li><p><strong>Węzeł <code>gpio-keys</code></strong>:</p>
+<ul>
+<li><code>compatible = "gpio-keys";</code>: Określa, że węzeł jest
+obsługiwany przez sterownik <code>gpio_keys</code>.</li>
+<li><code>pinctrl-names</code> i <code>pinctrl-0</code>: Definiują
+konfigurację pinów GPIO.</li>
+</ul></li>
+<li><p><strong>Węzeł <code>button@0</code> i
+<code>button@1</code></strong>:</p>
+<ul>
+<li><code>label = "gpio_button1";</code>: Etykieta pierwszego
+przycisku.</li>
+<li><code>gpios = &lt;&amp;gpio 17 GPIO_ACTIVE_HIGH&gt;;</code>: Określa
+numer GPIO (17) i aktywny stan wysoki dla pierwszego przycisku.</li>
+<li><code>linux,code = &lt;KEY_ENTER&gt;;</code>: Kod klawisza
+generowanego przez pierwszy przycisk (np. <code>KEY_ENTER</code>).</li>
+<li><code>debounce-interval = &lt;10&gt;;</code>: Czas debouncingu w
+milisekundach.</li>
+<li>Analogicznie dla drugiego przycisku (<code>gpio_button2</code>, GPIO
+18, <code>KEY_ESC</code>).</li>
+</ul></li>
+<li><p><strong>Węzeł <code>&amp;gpio</code></strong>:</p>
+<ul>
+<li><code>pinctrl_gpio_keys</code>: Definiuje konfigurację pinów
+GPIO.</li>
+<li><code>pinmux = &lt;PINMUX_GPIO_17&gt;, &lt;PINMUX_GPIO_18&gt;;</code>:
+Określa, że piny 17 i 18 są używane jako GPIO.</li>
+<li><code>bias-pull-down</code>: Ustawia rezystor pull-down na pinach
+GPIO.</li>
+</ul></li>
+</ul>
+<h4 id="konfiguracja-w-bootfirmwareconfig.txt">Konfiguracja w
+/boot/firmware/config.txt</h4>
+<p>Aby załadować powyższą konfigurację Device Tree, należy dodać
+odpowiedni wpis w pliku <code>/boot/firmware/config.txt</code>. Poniżej
+znajduje się przykład konfiguracji dla dwóch przycisków:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode txt"><code class="sourceCode default"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>dtoverlay=gpio-key,gpio=17,active_low=0,gpio_pull=down,label=button1,keycode=28,debounce=10</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>dtoverlay=gpio-key,gpio=18,active_low=0,gpio_pull=down,label=button2,keycode=1,debounce=10</span></code></pre></div>
+<h4 id="wyjaśnienie-konfiguracji-w-config.txt">Wyjaśnienie konfiguracji
+w config.txt</h4>
+<ul>
+<li><code>dtoverlay=gpio-key</code>: Określa użycie nakładki Device Tree
+<code>gpio-key</code>.</li>
+<li><code>gpio=17</code>: Numer GPIO dla pierwszego przycisku.</li>
+<li><code>active_low=0</code>: Określa, że aktywny stan jest
+wysoki.</li>
+<li><code>gpio_pull=down</code>: Ustawia rezystor pull-down.</li>
+<li><code>label=button1</code>: Etykieta przycisku.</li>
+<li><code>keycode=28</code>: Kod klawisza generowanego przez pierwszy
+przycisk (np. <code>KEY_ENTER</code>).</li>
+<li><code>debounce=10</code>: Czas debouncingu w milisekundach.</li>
+<li>Analogicznie dla drugiego przycisku (<code>gpio=18</code>,
+<code>label=button2</code>, <code>keycode=1</code> (np.
+<code>KEY_ESC</code>)).</li>
+</ul>
+<h4 id="podsumowanie">Podsumowanie</h4>
+<p>Sterownik <code>gpio_keys</code> upraszcza obsługę przycisków
+podłączonych do GPIO, mapując zdarzenia fizyczne na standardowe
+zdarzenia wejściowe systemu Linux. Konfiguracja odbywa się poprzez plik
+Device Tree oraz plik <code>/boot/firmware/config.txt</code>, co pozwala
+na łatwą integrację z systemem i aplikacjami użytkownika.</p>
+<h2 id="popularne-urządzenia-wejścia">Popularne urządzenia wejścia</h2>
+<h3 id="przycisk-chwilowy-push-button">Przycisk chwilowy (push
+button)</h3>
+<h4 id="opis-funkcjonalny">Opis funkcjonalny</h4>
+<p>Przycisk chwilowy to prosty mechaniczny przełącznik, który łączy dwa
+styki, gdy jest wciśnięty, i rozłącza je, gdy jest zwolniony. Jest
+często używany do generowania sygnałów wejściowych w systemach
+elektronicznych, takich jak uruchamianie funkcji, resetowanie urządzeń
+czy wprowadzanie danych przez użytkownika.</p>
+<h4 id="zasada-działania-1">Zasada działania</h4>
+<ul>
+<li>W stanie spoczynkowym przycisk jest rozwarty, a GPIO jest połączone
+z masą (GND) przez rezystor pull-down, co oznacza, że linia GPIO jest w
+stanie niskim (0).</li>
+<li>Wciśnięcie przycisku powoduje zwarcie styków, co łączy GPIO z
+napięciem 3.3V, powodując, że linia GPIO przechodzi w stan wysoki
+(1).</li>
+<li>Prąd płynie tylko wtedy, gdy przycisk jest wciśnięty, co
+minimalizuje zużycie energii.</li>
+</ul>
+<p>Schemat podłączenia:</p>
+<figure>
+<img src="push_button_circuit.png" alt="push button circuit" />
+<figcaption aria-hidden="true">push button circuit</figcaption>
+</figure>
+<h4 id="przykładowy-kod-w-c-z-wyzwalaniem-zboczem">Przykładowy kod w C++
+z wyzwalaniem zboczem</h4>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;gpiod.hpp&gt;</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>gpiod<span class="op">::</span>chip chip<span class="op">(</span><span class="st">&quot;gpiochip0&quot;</span><span class="op">);</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>gpiod<span class="op">::</span>line line <span class="op">=</span> chip<span class="op">.</span>get_line<span class="op">(</span>lineNum<span class="op">);</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>line<span class="op">.</span>request<span class="op">({</span><span class="st">&quot;button&quot;</span><span class="op">,</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>       gpiod<span class="op">::</span>line_request<span class="op">::</span>EVENT_BOTH_EDGES</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>       gpiod<span class="op">::</span>line_request<span class="op">::</span>FLAG_BIAS_PULL_DOWN<span class="op">});</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> event <span class="op">=</span> line<span class="op">.</span>event_wait<span class="op">(</span><span class="bu">std::</span>chrono::milliseconds<span class="op">(</span><span class="dv">100</span><span class="op">));</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>   <span class="kw">auto</span> event <span class="op">=</span> line<span class="op">.</span>event_read<span class="op">();</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>   <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="dt">event_type</span> <span class="op">==</span> gpiod<span class="op">::</span>line_event<span class="op">::</span>RISING_EDGE<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>      <span class="co">// button pressed, see the hardware configuration</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>      <span class="co">// button released</span></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a><span class="co">// not requirequired because of RAII</span></span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a><span class="co">// line.release()</span></span></code></pre></div>
+<p>Gdy przycisk jest skonfigurowany jako <code>gpio-key</code></p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode txt"><code class="sourceCode default"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>dtoverlay=gpio-key,gpio=4,active_low=0,gpio_pull=down,label=lwsw-key,keycode=16,debounce=200</span></code></pre></div>
+<p>zdarzenia przezeń generowane można odbierać z systemowej kolejki
+zdarzeń. Aplikacja nie musi wtedy posiadać praw do odczytu stanu linii
+GPIO. Mówiąc obrazowo, przycisk staje się klawiszem na klawiaturze i tak
+też należy go w programie traktować.</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="dt">char</span><span class="op">*</span> device <span class="op">=</span> <span class="st">&quot;/dev/input/event0&quot;</span><span class="op">;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> fd <span class="op">=</span> open<span class="op">(</span>device<span class="op">,</span> O_RDONLY<span class="op">);</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> epoll_fd <span class="op">=</span> epoll_create1<span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> epoll_event event<span class="op">;</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>event<span class="op">.</span>events <span class="op">=</span> EPOLLIN<span class="op">;</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>event<span class="op">.</span>data<span class="op">.</span>fd <span class="op">=</span> fd<span class="op">;</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>epoll_ctl<span class="op">(</span>epoll_fd<span class="op">,</span> EPOLL_CTL_ADD<span class="op">,</span> fd<span class="op">,</span> <span class="op">&amp;</span>event<span class="op">)</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="op">(</span><span class="kw">true</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>   <span class="kw">struct</span> epoll_event ev<span class="op">;</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>   <span class="dt">int</span> nfds <span class="op">=</span> epoll_wait<span class="op">(</span>epoll_fd<span class="op">,</span> <span class="op">&amp;</span>ev<span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>   <span class="cf">if</span> <span class="op">(</span>nfds <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> <span class="op">(</span>ev<span class="op">.</span>events <span class="op">&amp;</span> EPOLLIN<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>      <span class="kw">struct</span> input_event input_ev<span class="op">;</span></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>      read<span class="op">(</span>ev<span class="op">.</span>data<span class="op">.</span>fd<span class="op">,</span> <span class="op">&amp;</span>input_ev<span class="op">,</span> <span class="kw">sizeof</span><span class="op">(</span>input_ev<span class="op">));</span></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>      <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Event: time &quot;</span> <span class="op">&lt;&lt;</span> input_ev<span class="op">.</span>time<span class="op">.</span>tv_sec <span class="op">&lt;&lt;</span> <span class="st">&quot;.&quot;</span> <span class="op">&lt;&lt;</span> input_ev<span class="op">.</span>time<span class="op">.</span>tv_usec</span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>                  <span class="op">&lt;&lt;</span> <span class="st">&quot;, type &quot;</span> <span class="op">&lt;&lt;</span> input_ev<span class="op">.</span>type</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>                  <span class="op">&lt;&lt;</span> <span class="st">&quot;, code &quot;</span> <span class="op">&lt;&lt;</span> input_ev<span class="op">.</span>code</span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>                  <span class="op">&lt;&lt;</span> <span class="st">&quot;, value &quot;</span> <span class="op">&lt;&lt;</span> input_ev<span class="op">.</span>value <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span></span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a>close<span class="op">(</span>fd<span class="op">);</span></span>
+<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a>close<span class="op">(</span>epoll_fd<span class="op">);</span></span></code></pre></div>
+<h3 id="enkoder-obrotowy-rotary-encoder">Enkoder obrotowy (rotary
+encoder)</h3>
+<h4 id="opis-funkcjonalny-1">Opis funkcjonalny</h4>
+<p>Enkoder obrotowy to urządzenie, które przekształca ruch obrotowy na
+sygnały elektryczne. Jest używany do precyzyjnego określania pozycji
+kątowej, kierunku obrotu oraz prędkości obrotowej. Enkodery obrotowe są
+powszechnie stosowane w interfejsach użytkownika, takich jak pokrętła
+regulacyjne, oraz w systemach sterowania ruchem.</p>
+<h4 id="zasada-działania-2">Zasada działania</h4>
+<ul>
+<li>Enkoder generuje dwie sekwencje impulsów (CLK/SIA i DT/SIB), które
+są przesunięte w fazie.</li>
+<li>w zależności od wykrytego zbocza na linii CLK i stanu linii DT
+tabela dekodowania obrotu jest następująca</li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>ROT</th>
+<th>CCW</th>
+<th>CCW</th>
+<th>CW</th>
+<th>CW</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CLK</td>
+<td>rising</td>
+<td>falling</td>
+<td>rising</td>
+<td>falling</td>
+</tr>
+<tr class="even">
+<td>DT</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>Niektóre enkodery utrzymują linię CLK w stabilnym położeniu, co
+oznacza, że zdarzenia <code>rising</code> and <code>falling</code>
+występują zawsze w parze. Należy wtedy dekodować co drugie zdarzenie,
+tzn. pominąć kolumnę 3 i 5 tabeli dekodowania.</p>
+<p>Sekwencje zdarzeń</p>
+<ul>
+<li><p>Obrót w prawo (clockwise/CW):</p>
+<ol type="1">
+<li>CLK przechodzi z 0 do 1, gdy DT jest 1.</li>
+<li>DT przechodzi z 1 do 0.</li>
+<li>CLK przechodzi z 1 do 0, gdy DT jest 0.</li>
+<li>DT przechodzi z 0 do 1.</li>
+</ol></li>
+<li><p>Obrót w lewo (odwrotna sekwencja):</p>
+<ol type="1">
+<li>CLK przechodzi z 0 do 1, gdy DT jest 0.</li>
+<li>DT przechodzi z 0 do 1.</li>
+<li>CLK przechodzi z 1 do 0, gdy DT jest 1.</li>
+<li>DT przechodzi z 1 do 0.</li>
+</ol></li>
+</ul>
+<p>Schemat podłączenia:</p>
+<figure>
+<img src="rotary_encoder_circuit.png" alt="rotary encoder" />
+<figcaption aria-hidden="true">rotary encoder</figcaption>
+</figure>
+<p>Proszę zauważyć, że przedstawione przebiegi i sekwencje dotyczą
+sytuacji gdy:</p>
+<ul>
+<li>Enkoder znajduje się zasilanej płytce zawierającej interfejs
+elektryczny, w stanie neutralnym wszystkie sygnały są w stanie
+wysokim.</li>
+<li>W celu eliminacji “dzwonienia styków” zastosowano filtr
+dolnoprzepustowy i odwracający przerzutnik Schmitta, zatem na wejściach
+GPIO w stanie neutralnym mamy stan niski.</li>
+</ul>
+<h4 id="przykładowy-kod-w-c-z-wyzwalaniem-zboczem-1">Przykładowy kod w
+C++ z wyzwalaniem zboczem</h4>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;gpiod.hpp&gt;</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>gpiod<span class="op">::</span>chip Schip<span class="op">(</span><span class="st">&quot;gpiochip0&quot;</span><span class="op">);</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>gpiod<span class="op">::</span>line SIA <span class="op">=</span> chip<span class="op">.</span>get_line<span class="op">(</span><span class="dv">16</span><span class="op">);</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>SIA<span class="op">.</span>request<span class="op">(</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;rotary_SIA&quot;</span><span class="op">,</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>      gpiod<span class="op">::</span>line_request<span class="op">::</span>EVENT_BOTH_EDGES<span class="op">,</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>      gpiod<span class="op">::</span>line_request<span class="op">::</span>FLAG_BIAS_PULL_DOWN</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>   <span class="op">);</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>gpiod<span class="op">::</span>line SIB <span class="op">=</span> chip<span class="op">.</span>get_line<span class="op">(</span><span class="dv">20</span><span class="op">);</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>SIB<span class="op">.</span>request<span class="op">(</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;rotary_SIB&quot;</span><span class="op">,</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>      gpiod<span class="op">::</span>line_request<span class="op">::</span>DIRECTION_INPUT<span class="op">,</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>      gpiod<span class="op">::</span>line_request<span class="op">::</span>FLAG_BIAS_PULL_DOWN</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>   <span class="op">);</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> event <span class="op">=</span> SIA<span class="op">.</span>event_wait<span class="op">(</span><span class="bu">std::</span>chrono::milliseconds<span class="op">(</span><span class="dv">10</span><span class="op">));</span></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>      <span class="kw">auto</span> SIA_event <span class="op">=</span> SIA_line<span class="op">.</span>event_read<span class="op">();</span></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">int</span> SIB_Value <span class="op">=</span> SIB_line<span class="op">.</span>get_value<span class="op">();</span></span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> <span class="op">(</span>SIA_event<span class="op">.</span><span class="dt">event_type</span> <span class="op">==</span> gpiod<span class="op">::</span>line_event<span class="op">::</span>RISING_EDGE <span class="op">&amp;&amp;</span> SIB_Value <span class="op">==</span> <span class="dv">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>         <span class="co">// Clockwise rotation</span></span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>      <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>SIA_event<span class="op">.</span><span class="dt">event_type</span> <span class="op">==</span> gpiod<span class="op">::</span>line_event<span class="op">::</span>FALLING_EDGE <span class="op">&amp;&amp;</span> SIB_Value <span class="op">==</span> <span class="dv">1</span><span class="op">)</span> <span class="op">{</span> <span class="co">// CounterClockwise rotation</span></span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>         <span class="co">// decrease the proximity threshold</span></span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>         <span class="kw">auto</span> newThreshold <span class="op">=</span> <span class="bu">std::</span>max<span class="op">(</span>appState<span class="op">.</span>proximityThreshold<span class="op">.</span>load<span class="op">()</span> <span class="op">-</span> proximityThresholdDelta<span class="op">,</span>proximityThresholdMin<span class="op">)</span> <span class="op">;</span></span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>         appState<span class="op">.</span>proximityThreshold<span class="op">.</span>store<span class="op">(</span>newThreshold<span class="op">)</span> <span class="op">;</span></span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>      <span class="op">}</span></span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="dalmierz-akustyczny-hc-sr04">Dalmierz akustyczny HC-SR04</h3>
+<h4 id="opis-funkcjonalny-2">Opis funkcjonalny</h4>
+<p>Dalmierz akustyczny HC-SR04 to czujnik odległości, który wykorzystuje
+ultradźwięki do pomiaru dystansu do obiektu. Jest powszechnie stosowany
+w robotyce, systemach parkowania oraz w aplikacjach wymagających pomiaru
+odległości bezkontaktowego.</p>
+<h4 id="zasada-działania-3">Zasada działania</h4>
+<ol type="1">
+<li><p>Sygnał TRIGGER:</p>
+<ul>
+<li>Stan początkowy: obie linie TRIGGER i ECHO w stanie niskim.</li>
+<li>Zbocze narastające (impuls o szerokości co najmniej 10μs) na linii
+TRIGGER inicjuje pomiar.</li>
+<li>Moduł wysyła 8 impulsów ultradźwiękowych o częstotliwości
+40kHz.</li>
+<li>Linia ECHO przechodzi w stan wysoki.</li>
+</ul></li>
+<li><p>Sygnał ECHO:</p>
+<ul>
+<li>Pozostaje wysoka do momentu odebrania echa.</li>
+<li>Po odebraniu echa l</li>
+<li>Czas trwania impulsu ECHO jest proporcjonalny do odległości.</li>
+<li>Przeliczenie: odległość = (czas_ECHO × prędkość_dźwięku) / 2.</li>
+</ul></li>
+<li><p>Interfejs elektryczny:</p>
+<ul>
+<li>Zasilanie +5V.</li>
+<li>TRIGGER: wejście 3.3V/5V.</li>
+<li>ECHO: wyjście 5V (wymaga dzielnika napięcia dla GPIO 3.3V).</li>
+<li>Dzielnik R1=470Ω, R2=1kΩ zapewnia konwersję poziomów.</li>
+</ul></li>
+</ol>
+<p>Schemat podłączenia:</p>
+<figure>
+<img src="sr04_circuit.png" alt="HC-SR04 circuit" />
+<figcaption aria-hidden="true">HC-SR04 circuit</figcaption>
+</figure>
+<h4 id="przykładowy-kod-w-c-z-wyzwalaniem-zboczem-2">Przykładowy kod w
+C++ z wyzwalaniem zboczem</h4>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;gpiod.hpp&gt;</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>gpiod<span class="op">::</span>chip chip<span class="op">(</span><span class="st">&quot;gpiochip0&quot;</span><span class="op">);</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>trigger_line <span class="op">=</span> chip<span class="op">.</span>get_line<span class="op">(</span><span class="dv">23</span><span class="op">);</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>trigger_line<span class="op">.</span>request<span class="op">(</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>   <span class="st">&quot;SR04-Trigger&quot;</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>   <span class="op">,</span>gpiod<span class="op">::</span>line_request<span class="op">::</span>DIRECTION_OUTPUT</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>   <span class="op">,</span><span class="dv">0</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>   <span class="op">);</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>trigger_line<span class="op">.</span>set_value<span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="va">echo_line_</span> <span class="op">=</span> chip<span class="op">.</span>get_line<span class="op">(</span><span class="dv">24</span><span class="op">);</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>echo_line<span class="op">.</span>request<span class="op">(</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;SR04-Echo&quot;</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>      <span class="op">,</span>gpiod<span class="op">::</span>line_request<span class="op">::</span>EVENT_BOTH_EDGES</span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>      <span class="op">,</span>gpiod<span class="op">::</span>line_request<span class="op">::</span>FLAG_BIAS_PULL_DOWN</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>   <span class="op">);</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>trigger_line<span class="op">.</span>set_value<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>usleep<span class="op">(</span><span class="dv">20</span><span class="op">)</span> <span class="op">;</span></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>trigger_line<span class="op">.</span>set_value<span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> rising_time <span class="op">=</span> <span class="bu">std::</span>chrono::steady_clock::time_point::min<span class="op">();</span></span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> falling_time <span class="op">=</span> <span class="bu">std::</span>chrono::steady_clock::time_point::min<span class="op">();</span></span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> event <span class="op">=</span> echo_line<span class="op">.</span>event_wait<span class="op">(</span><span class="dv">5</span><span class="op">);</span></span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a>   <span class="kw">auto</span> evt <span class="op">=</span> echo_line<span class="op">.</span>event_read<span class="op">();</span></span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>   <span class="cf">if</span> <span class="op">(</span>evt<span class="op">.</span><span class="dt">event_type</span> <span class="op">==</span> gpiod<span class="op">::</span>line_event<span class="op">::</span>RISING_EDGE<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb27-28"><a href="#cb27-28" aria-hidden="true" tabindex="-1"></a>         <span class="co">// Check if the line value is high</span></span>
+<span id="cb27-29"><a href="#cb27-29" aria-hidden="true" tabindex="-1"></a>         <span class="cf">if</span> <span class="op">(</span>echo_line<span class="op">.</span>get_value<span class="op">()</span> <span class="op">==</span> <span class="dv">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb27-30"><a href="#cb27-30" aria-hidden="true" tabindex="-1"></a>            rising_time <span class="op">=</span> <span class="bu">std::</span>chrono::steady_clock::now<span class="op">();</span></span>
+<span id="cb27-31"><a href="#cb27-31" aria-hidden="true" tabindex="-1"></a>         <span class="op">}</span></span>
+<span id="cb27-32"><a href="#cb27-32" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span></span>
+<span id="cb27-33"><a href="#cb27-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb27-34"><a href="#cb27-34" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> event <span class="op">=</span> echo_line<span class="op">.</span>event_wait<span class="op">(</span><span class="dv">50</span><span class="op">);</span></span>
+<span id="cb27-35"><a href="#cb27-35" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb27-36"><a href="#cb27-36" aria-hidden="true" tabindex="-1"></a>   <span class="kw">auto</span> evt <span class="op">=</span> echo_line<span class="op">.</span>event_read<span class="op">();</span></span>
+<span id="cb27-37"><a href="#cb27-37" aria-hidden="true" tabindex="-1"></a>   <span class="cf">if</span> <span class="op">(</span>evt<span class="op">.</span><span class="dt">event_type</span> <span class="op">==</span> gpiod<span class="op">::</span>line_event<span class="op">::</span>FALLING_EDGE<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb27-38"><a href="#cb27-38" aria-hidden="true" tabindex="-1"></a>         <span class="co">// Check if the line value is low</span></span>
+<span id="cb27-39"><a href="#cb27-39" aria-hidden="true" tabindex="-1"></a>         <span class="cf">if</span> <span class="op">(</span>echo_line<span class="op">.</span>get_value<span class="op">()</span> <span class="op">==</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb27-40"><a href="#cb27-40" aria-hidden="true" tabindex="-1"></a>            falling_time <span class="op">=</span> <span class="bu">std::</span>chrono::steady_clock::now<span class="op">();</span></span>
+<span id="cb27-41"><a href="#cb27-41" aria-hidden="true" tabindex="-1"></a>         <span class="op">}</span></span>
+<span id="cb27-42"><a href="#cb27-42" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span></span>
+<span id="cb27-43"><a href="#cb27-43" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb27-44"><a href="#cb27-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-45"><a href="#cb27-45" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> duration_us <span class="op">=</span> <span class="bu">std::</span>chrono::duration_cast<span class="op">&lt;</span><span class="bu">std::</span>chrono::microseconds<span class="op">&gt;(</span>falling_time <span class="op">-</span> rising_time<span class="op">).</span>count<span class="op">();</span></span>
+<span id="cb27-46"><a href="#cb27-46" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> duration_seconds <span class="op">=</span> <span class="op">(</span><span class="fl">1.0</span><span class="op">*</span>duration_us<span class="op">)</span> <span class="op">/</span> <span class="fl">1&#39;000&#39;000.0</span><span class="op">;</span></span>
+<span id="cb27-47"><a href="#cb27-47" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> speed_of_sound <span class="op">=</span> <span class="fl">343.0</span><span class="op">;</span> <span class="co">// m/s</span></span>
+<span id="cb27-48"><a href="#cb27-48" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> distance_m <span class="op">=</span> <span class="op">(</span>duration_seconds <span class="op">*</span> speed_of_sound<span class="op">)</span> <span class="op">/</span> <span class="fl">2.0</span> <span class="op">;</span> <span class="co">// round trip</span></span></code></pre></div>
