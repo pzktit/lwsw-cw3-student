@@ -729,3 +729,6 @@ double speed_of_sound = 343.0; // m/s
 auto distance_m = (duration_seconds * speed_of_sound) / 2.0 ; // round trip
 ```
 
+## Zadania do wykonania
+
+[Zadania do wykonania](cw3-pl-student.html)
