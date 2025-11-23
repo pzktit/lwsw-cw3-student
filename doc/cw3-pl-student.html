@@ -394,15 +394,21 @@ treści wyświetlane na ekranie odpowiada wątek
 <p>Repozytorium ćwiczenia <a href="https://github.com/pzktit/lwsw-cw3-student">https://github.com/pzktit/lwsw-cw3-student</a>.
 Sklonuj je do bieżącego katalogu pomijając historię zmian</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--depth</span> 1 <span class="at">--branch</span> main <span class="at">--single-branch</span> https://github.com/pzktit/lwsw-cw3-student.git cw3</span></code></pre></div>
-<h3 id="wstępne-sprawdzenie-konfiguracji-linii-gpio-za-pomocą-opcji-gpio-w-pliku-bootconfig.txt">0.
+<p>Skopiuj aplikację <code>demo</code> na system target</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">scp</span> cw3/demo target-0x:</span></code></pre></div>
+<p>Uruchom aplikację <code>demo</code> i sprawdź czy działa zgodnie z
+zamieszczonym wyżej opisem.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> target-0x <span class="st">&quot;./demo&quot;</span></span></code></pre></div>
+<p>Problemy zgłoś prowadzącemu.</p>
+<h3 id="wstępne-sprawdzenie-konfiguracji-linii-gpio-za-pomocą-opcji-gpio-w-pliku-bootfirmwareconfig.txt">0.
 Wstępne sprawdzenie konfiguracji linii GPIO za pomocą opcji
-<code>gpio=</code> w pliku <code>/boot/config.txt</code></h3>
-<p>Opcja <code>gpio=</code> w pliku <code>/boot/config.txt</code>
-pozwala na ustawienie parametrów linii GPIO podczas uruchamiania
-systemu. Możemy zdefiniować kierunek (wejście lub wyjście), stan
-początkowy oraz rezystory podciągające dla konkretnych pinów GPIO.
-Dzięki temu linie są odpowiednio przygotowane, zanim system operacyjny
-zacznie z nich korzystać.</p>
+<code>gpio=</code> w pliku <code>/boot/firmware/config.txt</code></h3>
+<p>Opcja <code>gpio=</code> w pliku
+<code>/boot/firmware/config.txt</code> pozwala na ustawienie parametrów
+linii GPIO podczas uruchamiania systemu. Możemy zdefiniować kierunek
+(wejście lub wyjście), stan początkowy oraz rezystory podciągające dla
+konkretnych pinów GPIO. Dzięki temu linie są odpowiednio przygotowane,
+zanim system operacyjny zacznie z nich korzystać.</p>
 <p>Sprawdź zgodność bieżącej konfiguracji (wykorzystaj polecenie
 <code>cat</code>) z konfiguracją opisaną poniżej.</p>
 <h4 id="składnia-opcji-gpio">Składnia opcji <code>gpio=</code></h4>
@@ -428,18 +434,15 @@ zacznie z nich korzystać.</p>
 <li><code>dl</code> — stan niski (drive low).</li>
 </ul></li>
 </ul>
-<h4 id="dodanie-konfiguracji-w-bootconfig.txt">Dodanie konfiguracji w
-<code>/boot/config.txt</code></h4>
-<p>Aby odpowiednio skonfigurować linie GPIO wykorzystywane w ćwiczeniu,
-należy dodać poniższe linie do pliku <code>/boot/config.txt</code>:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a># Wstępna konfiguracja linii GPIO</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>gpio=4=ip,pd</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>gpio=16=ip,pd</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>gpio=20=ip,pd</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>gpio=21=ip,pd</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>gpio=23=op,dh</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>gpio=24=ip,pd</span></code></pre></div>
-<h4 id="wyjaśnienie-konfiguracji">Wyjaśnienie konfiguracji</h4>
+<h4 id="stan-pożądany">Stan pożądany</h4>
+<div class="sourceCode" id="cb7"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a># Wstępna konfiguracja linii GPIO</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>gpio=4=ip,pd</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>gpio=16=ip,pd</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>gpio=20=ip,pd</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>gpio=21=ip,pd</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>gpio=23=op,dh</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>gpio=24=ip,pd</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>dtoverlay=gpio-key,gpio=4,active_low=0,gpio_pull=down,label=button,keycode=16,debounce=200</span></code></pre></div>
 <ul>
 <li><code>gpio=4=ip,pd</code>: Ustawia GPIO 4 jako wejście z rezystorem
 pull-down.</li>
@@ -455,7 +458,6 @@ wejście z rezystorem pull-down.</li>
 <li>Konfiguracja przycisku na GPIO 4 za pomocą
 <code>gpio-key</code></li>
 </ul>
-<div class="sourceCode" id="cb6"><pre class="sourceCode txt"><code class="sourceCode default"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>dtoverlay=gpio-key,gpio=4,active_low=0,gpio_pull=down,label=button,keycode=16,debounce=200</span></code></pre></div>
 <h4 id="dlaczego-warto-użyć-opcji-gpio">Dlaczego warto użyć opcji
 <code>gpio=</code>?</h4>
 <ul>
@@ -496,7 +498,7 @@ komend. Zrzuty zamieść w sprawozdaniu.</p>
 zdarzeń przycisku na GPIO 4</h3>
 <p><strong>Polecenie:</strong></p>
 <p>Uruchom <code>evtest</code>:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">evtest</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">evtest</span></span></code></pre></div>
 <p>Zobaczysz listę dostępnych urządzeń wejściowych. Wybierz urządzenie
 odpowiadające przyciskowi (np.</p>
 <p>event0</p>
@@ -520,7 +522,7 @@ Monitorowanie stanu przycisku enkodera na GPIO 21</h3>
 komendy monitorujące a) tylko zbocza narastające, b) tylko zbocza
 opadające, c) oba rodzaje zboczy. W czasie aktywnej komendy naciskaj
 przycisk enkodera, aby sprawdzić jej działanie.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpiomon</span> <span class="op">&lt;</span>opcje<span class="op">&gt;</span> <span class="op">&lt;</span>chip<span class="op">&gt;</span> <span class="op">&lt;</span>lineNum<span class="op">&gt;</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpiomon</span> <span class="op">&lt;</span>opcje<span class="op">&gt;</span> <span class="op">&lt;</span>chip<span class="op">&gt;</span> <span class="op">&lt;</span>lineNum<span class="op">&gt;</span></span></code></pre></div>
 <p>Składnia dostępna po <code>gpiomon -h</code> lub
 <code>man gpiomon</code>.</p>
 <div style="background-color: yellow; color:red; padding: 2px;">
@@ -550,19 +552,19 @@ Pomiar odległości z linii komend za pomocą dalmierza HC-SR04</h3>
 <li><p>Otwórz dwie sesje na system <code>target</code>.</p></li>
 <li><p>W sesji <code>A</code> ustaw GPIO 23 jako wyjście i ustaw stan
 niski <em>Trigger</em>:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a> <span class="ex">gpioset</span> gpiochip0 23=0</span></code></pre></div></li>
+<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a> <span class="ex">gpioset</span> gpiochip0 23=0</span></code></pre></div></li>
 <li><p>W sesji B sprawdź, czy <em>Echo</em> jest w stanie niskim:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpioget</span> gpiochip0 24</span></code></pre></div></li>
+<div class="sourceCode" id="cb12"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpioget</span> gpiochip0 24</span></code></pre></div></li>
 <li><p>W sesji B włącz monitorowanie obu zboczy, ogranicz się do dwóch
 zdarzeń, wykorzystaj opcję formatu postaci
 <code>--format=&quot;%e %s.%n&quot;</code>, pytajniki zastąp odpowiednimi
 opcjami</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpiomon</span> <span class="pp">???</span> <span class="at">--format</span><span class="op">=</span><span class="st">&quot;%e %s.%n&quot;</span> gpiochip0 24</span></code></pre></div></li>
+<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gpiomon</span> <span class="pp">???</span> <span class="at">--format</span><span class="op">=</span><span class="st">&quot;%e %s.%n&quot;</span> gpiochip0 24</span></code></pre></div></li>
 <li><p>W sesji A wyzwól sekwencję pomiaru komendą</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a> <span class="ex">gpioset</span> <span class="at">--mode</span><span class="op">=</span>time <span class="at">--usec</span> 20 gpiochip0 23=1 <span class="kw">&amp;&amp;</span> <span class="ex">gpioset</span> gpiochip0 23=0</span></code></pre></div></li>
+<div class="sourceCode" id="cb14"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a> <span class="ex">gpioset</span> <span class="at">--mode</span><span class="op">=</span>time <span class="at">--usec</span> 20 gpiochip0 23=1 <span class="kw">&amp;&amp;</span> <span class="ex">gpioset</span> gpiochip0 23=0</span></code></pre></div></li>
 <li><p>W sesji A zanotuj różnicę czasu w mikrosekundach. Oblicz
 odległość od przeszkody wg wzoru <span class="math display">
-D[m]= 0.5*t[\mu s]*10^{-6}*340 [m/s]
+D[m]= 0.5*t[s]*340 [m/s]
 </span></p></li>
 </ol>
 <div style="background-color: yellow; color:red; padding: 2px;">
@@ -588,11 +590,11 @@ operacyjnego.</p>
 <p><strong>Polecenia:</strong></p>
 <ol type="1">
 <li><p>Wyświetl aktualną konfigurację pinów:</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> /sys/kernel/debug/pinctrl/</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> /sys/kernel/debug/pinctrl/<span class="pp">*</span>-rp1/pins</span></code></pre></div></li>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> /sys/kernel/debug/pinctrl/</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> /sys/kernel/debug/pinctrl/<span class="pp">*</span>-rp1/pins</span></code></pre></div></li>
 <li><p>Sprawdź ustawienia pinów wykorzystywanych w ćwiczeniu</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pinctrl</span> get 4,6,16,17,20,21,23,24</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gpioinfo</span> gpiochip0</span></code></pre></div></li>
+<div class="sourceCode" id="cb16"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pinctrl</span> get 4,6,16,17,20,21,23,24</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gpioinfo</span> gpiochip0</span></code></pre></div></li>
 <li><p>W sesji A uruchom aplikację <code>demo</code></p></li>
 <li><p>w sesji B sprawdź ponownie ustawienia pinów. W rezultatach
 komendy <code>gpioinfo</code> zwróć uwagę na nazwy przypisane do
@@ -605,11 +607,14 @@ punktu 4. Zrzut zamieść w sprawozdaniu.</p>
 <hr />
 <h3 id="praca-z-kodem-aplikacji">7. Praca z kodem aplikacji</h3>
 <p><strong>Polecenie</strong></p>
-<p>Zbuduj dostarczony kod źródłowy. Jest to aplikacja nieco okaleczona w
-porównaniu do dostarczonej wersji <code>demo</code>. Celem dalszych
-działań jest przywrócenie pierwotnej funkcjonalności. Miejsca wymagające
-modyfikacji oznaczono jako <code>TODO</code>. Stosuj się do opisów
-zamieszczonych w komentarzach. Przed wykonaniem zrzutu ekranu nie kasuj
-komentarzy zawierających polecenie.</p>
+<p>Zbuduj dostarczony kod źródłowy. W <em>Visual Studio Code</em> otwórz
+workspace (<code>File-&gt;OpenWorkspaceFromFile</code>)
+<code>cw3/student.code-workspace</code> i zbuduj projekt. Zbudowana
+aplikacja <code>build_dir/app</code> jest nieco okaleczona w porównaniu
+do dostarczonej wersji <code>demo</code>. Celem dalszych działań jest
+przywrócenie pierwotnej funkcjonalności. Miejsca wymagające modyfikacji
+oznaczono jako <code>TODO</code>. Stosuj się do opisów zamieszczonych w
+komentarzach. Przed wykonaniem zrzutu ekranu nie kasuj komentarzy
+zawierających polecenie.</p>
 </body>
 </html>
