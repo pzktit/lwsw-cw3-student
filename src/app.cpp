@@ -204,7 +204,7 @@ void handle_gpio_key_event(const input_event &input_event, Application_state &ap
             std::cout << "Application exit" << std::endl;
             appState.keepRunning.store(false);            
         } else {
-            //TODO: Dodaj obsługę krótkiego naciśnięcia przycisku polegającą na aktywacji stanu alarmu
+            // TODO: Dodaj obsługę krótkiego naciśnięcia przycisku polegającą na aktywacji stanu alarmu
             // Wskazówka: Podobne działanie znajduje się w kodzie wątku obsługującego dalmierz
         }
     }

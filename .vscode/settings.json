@@ -1,0 +1,8 @@
+{
+  "files.associations": {
+    "csignal": "cpp",
+    "thread": "cpp",
+    "atomic": "cpp",
+    "chrono": "cpp"
+  }
+}
